@@ -1,0 +1,75 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "Kevin Oane",
+    "classifications": [
+        "Web",
+        "Web API",
+        "API",
+        "Service",
+        "Cloud",
+        "Aspire",
+        "Test"
+    ],
+    "identity": "ToTen.Backend",
+    "name": "ToTen NET Backend",
+    "shortName": "toten-backend",
+    "description": "A complete blueprint for .NET backends, a forked template from Julio Casal.",
+    "tags": {
+        "language": "C#",
+        "type": "project"
+    },
+    "sourceName": "ToTen",
+    "preferNameDirectory": true,
+    "symbols": {
+        "ProjectNameLower": {
+            "type": "derived",
+            "valueSource": "name",
+            "valueTransform": "lowerCase",
+            "replaces": "ToTen",
+            "fileRename": "ToTen"
+        },
+        "ProjectNameCamelCase": {
+            "type": "derived",
+            "valueSource": "name",
+            "valueTransform": "firstLowerCase",
+            "replaces": "ToTen"
+        },
+        "UserSecretsId": {
+            "type": "generated",
+            "generator": "guid",
+            "replaces": "92823f80-554d-4fd2-9ad2-b361574d1318"
+        }
+    },
+    "primaryOutputs": [
+        {
+            "path": "src/ToTen.Api/ToTen.Api.csproj"
+        },
+        {
+            "path": "src/ToTen.AppHost/ToTen.AppHost.csproj"
+        },
+        {
+            "path": "src/ToTen.Contracts/ToTen.Contracts.csproj"
+        },
+        {
+            "path": "src/ToTen.ServiceDefaults/ToTen.ServiceDefaults.csproj"
+        },
+        {
+            "path": "src/ToTen.Worker/ToTen.Worker.csproj"
+        },
+        {
+            "path": "tests/ToTen.Api.IntegrationTests/ToTen.Api.IntegrationTests.csproj"
+        }
+    ],
+    "postActions": [
+        {
+            "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+            "continueOnError": true,
+            "description": "Restore NuGet packages required by this project.",
+            "manualInstructions": [
+                {
+                    "text": "Run 'dotnet restore'"
+                }
+            ]
+        }
+    ]
+}

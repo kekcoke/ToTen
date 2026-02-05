@@ -1,0 +1,17 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/ToTen.Api/ToTen.Api.csproj" />
+    <Project Path="src/ToTen.AppHost/ToTen.AppHost.csproj" />
+    <Project Path="src/ToTen.Contracts/ToTen.Contracts.csproj" />
+    <Project Path="src/ToTen.ServiceDefaults/ToTen.ServiceDefaults.csproj" />
+    <Project Path="src/ToTen.Worker/ToTen.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ToTen.Api.IntegrationTests/ToTen.Api.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

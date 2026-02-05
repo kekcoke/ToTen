@@ -1,0 +1,24 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.0">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>92823f80-554d-4fd2-9ad2-b361574d1318</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Azure.AppContainers" Version="13.1.0" />
+    <PackageReference Include="Aspire.Hosting.Azure.ApplicationInsights" Version="13.1.0" />
+    <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" Version="13.1.0" />
+    <PackageReference Include="Aspire.Hosting.Keycloak" Version="13.1.0-preview.1.25616.3" />
+    <PackageReference Include="Aspire.Hosting.Azure.PostgreSQL" Version="13.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ToTen.Api\ToTen.Api.csproj" />
+    <ProjectReference Include="..\ToTen.Worker\ToTen.Worker.csproj" />
+  </ItemGroup>
+
+</Project>
