@@ -16,6 +16,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] No unauthorized modifications were made to API endpoint files.
 - [ ] Keycloak Realm export includes the 6 roles and required scopes.
 - [ ] EF models include `OwnerId` and `OrganizationId` where applicable.
+- [ ] PostGIS extension is enabled in DbContext and spatial/GIST indexes are properly configured.
 
 ---
 
@@ -27,6 +28,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Unit tests for new Handlers/Endpoints are written and passing.
 - [ ] API runs locally via Aspire (`dotnet run --project src/ToTen.AppHost`).
 - [ ] Swagger UI successfully loads and displays the newly added endpoints.
+- [ ] Marketplace search correctly filters items within a specified geographic radius and sorts by distance.
 - [ ] SignalR `ChatHub` accepts WebSocket connections and successfully broadcasts messages.
 - [ ] Worker successfully processes a mocked `SendNotificationEvent`.
 - [ ] Pub/Sub events are confirmed to be publishing to the local emulator/queue.
@@ -42,6 +44,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] `terraform validate` reports no syntax or configuration errors.
 - [ ] `terraform plan` executes successfully and generates the expected infrastructure delta without state lock errors.
 - [ ] Environment variables and secrets are correctly abstracted (no hardcoded credentials).
+- [ ] PostgreSQL Terraform module explicitly enables PostGIS.
 - [ ] Azure SignalR Service and communication provider secrets are present in the Terraform plan.
 
 ---
@@ -58,7 +61,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 
 ## Phase 5: Quality Automation Pipeline (QA Engineer Agent)
 **Validation Checklist**:
-- [ ] Ephemeral `Testcontainers` spin up and tear down successfully during the test run; no orphan resources.
+- [ ] Ephemeral PostGIS `Testcontainers` spin up and tear down successfully during the test run; no orphan resources.
 - [ ] Integration test suite passes with 100% success rate on the new Vertical Slices; no orphan resources.
 - [ ] Robot Framework executes successfully against the local or staging URL.
 - [ ] SignalR WebSocket connections pass automated integration testing.
