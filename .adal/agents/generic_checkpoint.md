@@ -16,6 +16,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] No unauthorized modifications were made to API endpoint files.
 - [ ] Keycloak Realm export includes the 6 roles and required scopes.
 - [ ] EF models include `OwnerId` and `OrganizationId` where applicable.
+- [ ] `Organization` and `OrganizationMembership` entities are successfully mapped with a many-to-many relationship.
 - [ ] PostGIS extension is enabled in DbContext and spatial/GIST indexes are properly configured.
 
 ---
@@ -35,6 +36,8 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Authentication works via the generic `IIdentityManager` without hard dependencies on Keycloak-specific libraries in the core API.
 - [ ] API endpoints correctly enforce `[Authorize]` role policies.
 - [ ] Resource authorization correctly blocks cross-user data access (e.g., User A accessing User B's inventory).
+- [ ] Group CRUD and membership invitation workflows execute successfully.
+- [ ] Resource authorization correctly permits access to resources owned by an `OrganizationId` if the user is an active member.
 
 ---
 
@@ -68,6 +71,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] JMeter test runs without catastrophic failure and produces a baseline report.
 - [ ] Test results are successfully published as pipeline artifacts.
 - [ ] Integration tests successfully assert 401/403 HTTP status codes for unauthorized role and resource access.
+- [ ] Tests verify that Organization members can access shared resources while non-members are correctly rejected.
 
 ---
 

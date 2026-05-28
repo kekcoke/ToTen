@@ -42,6 +42,8 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Implement ASP.NET Core Authorization Policies corresponding to the 6 roles.
 - [ ] Implement `IAuthorizationHandler` for Resource-Based Authorization (verifying data ownership).
 - [ ] Implement a Users/Roles vertical slice for Administrators to manage user permissions.
+- [ ] Implement `Organizations` and `Memberships` vertical slices (Create/Update/Delete groups, Invite/Remove members).
+- [ ] Update `IAuthorizationHandler` to support hierarchical access (OwnerId OR active OrganizationMembership).
 
 ---
 
@@ -82,6 +84,7 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Create a baseline JMeter load test for the `MoveItemToLocation` endpoint.
 - [ ] Ensure all test outputs are formatted for CI/CD pipeline ingestion.
 - [ ] Write API contract tests specifically validating 401 (Unauthorized) and 403 (Forbidden) boundaries for the 6-tier roles and cross-tenant data access.
+- [ ] Write multi-user interaction tests validating resource sharing within Organizations and proper 403 denials for non-members.
 
 ---
 
