@@ -20,6 +20,7 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Add `OwnerId` and `OrganizationId` to `InventoryItem` and `Location` to support Resource-Based Authorization.
 - [ ] Update Keycloak Realm configuration (`ToTen-realm.json`) to define the 6-tier role model (`user`, `business_owner`, `internal_user`, `admin`, `super_admin`, `third_party`).
 - [ ] Create models for `ChatThread`, `ChatMessage`, `Notification`, and `NotificationPreference`.
+- [ ] Create EF Core models for `Organization` (Household/Business) and `OrganizationMembership` (many-to-many join with User).
 - [ ] Generate the initial Entity Framework Core migration (`dotnet ef migrations add ExpandDomain`).
 
 ---
