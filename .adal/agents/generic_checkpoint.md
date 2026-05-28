@@ -10,6 +10,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] EF Core models compile without syntax errors.
 - [ ] Navigation properties and foreign keys are correctly mapped.
 - [ ] `ItemLineage` schema includes foreign keys to items, owners, transactions, and a JSONB state snapshot.
+- [ ] Chat and Notification schemas are correctly mapped to users and transactions.
 - [ ] `dotnet ef migrations add` completes successfully.
 - [ ] `dotnet ef database update` executes cleanly on a local/test database.
 - [ ] No unauthorized modifications were made to API endpoint files.
@@ -26,6 +27,8 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Unit tests for new Handlers/Endpoints are written and passing.
 - [ ] API runs locally via Aspire (`dotnet run --project src/ToTen.AppHost`).
 - [ ] Swagger UI successfully loads and displays the newly added endpoints.
+- [ ] SignalR `ChatHub` accepts WebSocket connections and successfully broadcasts messages.
+- [ ] Worker successfully processes a mocked `SendNotificationEvent`.
 - [ ] Pub/Sub events are confirmed to be publishing to the local emulator/queue.
 - [ ] Authentication works via the generic `IIdentityManager` without hard dependencies on Keycloak-specific libraries in the core API.
 - [ ] API endpoints correctly enforce `[Authorize]` role policies.
@@ -39,6 +42,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] `terraform validate` reports no syntax or configuration errors.
 - [ ] `terraform plan` executes successfully and generates the expected infrastructure delta without state lock errors.
 - [ ] Environment variables and secrets are correctly abstracted (no hardcoded credentials).
+- [ ] Azure SignalR Service and communication provider secrets are present in the Terraform plan.
 
 ---
 
@@ -57,6 +61,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Ephemeral `Testcontainers` spin up and tear down successfully during the test run; no orphan resources.
 - [ ] Integration test suite passes with 100% success rate on the new Vertical Slices; no orphan resources.
 - [ ] Robot Framework executes successfully against the local or staging URL.
+- [ ] SignalR WebSocket connections pass automated integration testing.
 - [ ] JMeter test runs without catastrophic failure and produces a baseline report.
 - [ ] Test results are successfully published as pipeline artifacts.
 - [ ] Integration tests successfully assert 401/403 HTTP status codes for unauthorized role and resource access.

@@ -18,6 +18,7 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Implement dynamic JSONB schema support for extensible attributes.
 - [ ] Add `OwnerId` and `OrganizationId` to `InventoryItem` and `Location` to support Resource-Based Authorization.
 - [ ] Update Keycloak Realm configuration (`ToTen-realm.json`) to define the 6-tier role model (`user`, `business_owner`, `internal_user`, `admin`, `super_admin`, `third_party`).
+- [ ] Create models for `ChatThread`, `ChatMessage`, `Notification`, and `NotificationPreference`.
 - [ ] Generate the initial Entity Framework Core migration (`dotnet ef migrations add ExpandDomain`).
 
 ---
@@ -33,6 +34,8 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Modify Marketplace `Transaction` logic to write immutable records to `ItemLineage` and publish `ItemTransferredEvent`.
 - [ ] Define and implement Message Contracts for Azure Service Bus/MassTransit (e.g., `ItemMovedEvent`, `ManifestCreatedEvent`).
 - [ ] Implement Background Worker Consumers for the newly created events.
+- [ ] Implement a `Communications` vertical slice with an ASP.NET Core SignalR `ChatHub`.
+- [ ] Implement Worker consumers for `SendNotificationEvent` translating to SendGrid (Email) or Twilio (SMS).
 - [ ] Abstract Keycloak/Identity logic behind a generic `IIdentityManager` interface (Pluggable IAM).
 - [ ] Implement ASP.NET Core Authorization Policies corresponding to the 6 roles.
 - [ ] Implement `IAuthorizationHandler` for Resource-Based Authorization (verifying data ownership).
@@ -48,6 +51,7 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Write Azure Container Apps Environment module.
 - [ ] Write Azure Database for PostgreSQL Flexible Server module.
 - [ ] Write Azure Service Bus namespace and Keycloak container modules.
+- [ ] Write Azure SignalR Service Terraform module and configure API keys for external providers.
 - [ ] Configure OpenTelemetry (OTLP) infrastructure endpoints.
 
 ---
@@ -72,6 +76,7 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Set up **Testcontainers** integration for isolated PostgreSQL database testing.
 - [ ] Write API integration tests covering all Phase 2 Vertical Slices.
 - [ ] Scaffold Robot Framework for behavior-driven black-box testing.
+- [ ] Write integration tests for SignalR Hubs using ASP.NET Core `TestServer` WebSocket client.
 - [ ] Create a baseline JMeter load test for the `MoveItemToLocation` endpoint.
 - [ ] Ensure all test outputs are formatted for CI/CD pipeline ingestion.
 - [ ] Write API contract tests specifically validating 401 (Unauthorized) and 403 (Forbidden) boundaries for the 6-tier roles and cross-tenant data access.
