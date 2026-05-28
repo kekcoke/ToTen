@@ -14,6 +14,7 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Create EF Core models for the **Manifest Slice**: `Manifest` (Source, Destination, Status).
 - [ ] Create EF Core models for the **Marketplace Slice**: `Listing`, `Offer`, `Transaction`.
 - [ ] Establish foreign key relationships (e.g., `InventoryItem` -> `LocationId`, `BoxId`).
+- [ ] Introduce an `ItemLineage` (or `ItemLedger`) entity to track ownership and condition history.
 - [ ] Implement dynamic JSONB schema support for extensible attributes.
 - [ ] Generate the initial Entity Framework Core migration (`dotnet ef migrations add ExpandDomain`).
 
@@ -27,6 +28,7 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Implement **Manifest Endpoints**: Generate Moving Manifest, associate boxes.
 - [ ] Implement QR Code generation service for Manifest boxes (save to Azure Blob Storage).
 - [ ] Implement **Marketplace Endpoints**: Create listing, submit offer.
+- [ ] Modify Marketplace `Transaction` logic to write immutable records to `ItemLineage` and publish `ItemTransferredEvent`.
 - [ ] Define and implement Message Contracts for Azure Service Bus/MassTransit (e.g., `ItemMovedEvent`, `ManifestCreatedEvent`).
 - [ ] Implement Background Worker Consumers for the newly created events.
 - [ ] Abstract Keycloak/Identity logic behind a generic `IIdentityManager` interface (Pluggable IAM).
@@ -79,3 +81,4 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Integrate Microsoft Semantic Kernel into the Worker Service.
 - [ ] Define a pilot AI workflow for automated data categorization or anomaly detection.
 - [ ] Implement a "Human Review" approval endpoint for flagged items.
+- [ ] Utilize Semantic Kernel to analyze lineage data for depreciation, wash trading detection, or vintage badge generation.

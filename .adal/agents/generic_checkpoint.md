@@ -9,6 +9,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 **Validation Checklist**:
 - [ ] EF Core models compile without syntax errors.
 - [ ] Navigation properties and foreign keys are correctly mapped.
+- [ ] `ItemLineage` schema includes foreign keys to items, owners, transactions, and a JSONB state snapshot.
 - [ ] `dotnet ef migrations add` completes successfully.
 - [ ] `dotnet ef database update` executes cleanly on a local/test database.
 - [ ] No unauthorized modifications were made to API endpoint files.
@@ -19,6 +20,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 **Validation Checklist**:
 - [ ] Project builds successfully (`dotnet build`).
 - [ ] Models, data transfer objects (DTOs) adhere to database schema.
+- [ ] Completing a Marketplace transaction successfully creates an immutable `ItemLineage` ledger entry.
 - [ ] Unit tests for new Handlers/Endpoints are written and passing.
 - [ ] API runs locally via Aspire (`dotnet run --project src/ToTen.AppHost`).
 - [ ] Swagger UI successfully loads and displays the newly added endpoints.
@@ -63,3 +65,4 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Worker Service initializes Microsoft Semantic Kernel without dependency resolution errors.
 - [ ] The pilot AI workflow can successfully process a mock payload and flag an item for "Human Review".
 - [ ] The Human Review endpoint correctly transitions the item state in the database upon approval/rejection.
+- [ ] AI workflow successfully analyzes mock lineage data and produces correct categorization/flags.
