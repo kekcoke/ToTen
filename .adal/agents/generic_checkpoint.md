@@ -23,6 +23,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] API runs locally via Aspire (`dotnet run --project src/ToTen.AppHost`).
 - [ ] Swagger UI successfully loads and displays the newly added endpoints.
 - [ ] Pub/Sub events are confirmed to be publishing to the local emulator/queue.
+- [ ] Authentication works via the generic `IIdentityManager` without hard dependencies on Keycloak-specific libraries in the core API.
 
 ---
 
@@ -41,6 +42,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Security scanners (SAST/DAST) run without breaking the build unexpectedly (unless critical vulnerabilities are found).
 - [ ] The pipeline successfully builds the Docker images and pushes to the configured registry.
 - [ ] Infrastructure deployment phase completes successfully in a staging/ephemeral environment.
+- [ ] Pipeline successfully packs `ToTen.Shared` and `ToTen.Contracts` and publishes the `.nupkg` files to the designated artifact feed.
 
 ---
 
@@ -51,3 +53,13 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Robot Framework executes successfully against the local or staging URL.
 - [ ] JMeter test runs without catastrophic failure and produces a baseline report.
 - [ ] Test results are successfully published as pipeline artifacts.
+
+---
+
+## Phase 6: Advanced Capabilities & Edge Routing (Backend / Architect Agent)
+**Validation Checklist**:
+- [ ] YARP Gateway project compiles, runs, and successfully reverse-proxies requests to the underlying API.
+- [ ] Gateway enforces configured CORS and Rate Limiting policies (verified via curl/Postman).
+- [ ] Worker Service initializes Microsoft Semantic Kernel without dependency resolution errors.
+- [ ] The pilot AI workflow can successfully process a mock payload and flag an item for "Human Review".
+- [ ] The Human Review endpoint correctly transitions the item state in the database upon approval/rejection.
