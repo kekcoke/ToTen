@@ -13,6 +13,8 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] `dotnet ef migrations add` completes successfully.
 - [ ] `dotnet ef database update` executes cleanly on a local/test database.
 - [ ] No unauthorized modifications were made to API endpoint files.
+- [ ] Keycloak Realm export includes the 6 roles and required scopes.
+- [ ] EF models include `OwnerId` and `OrganizationId` where applicable.
 
 ---
 
@@ -26,6 +28,8 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Swagger UI successfully loads and displays the newly added endpoints.
 - [ ] Pub/Sub events are confirmed to be publishing to the local emulator/queue.
 - [ ] Authentication works via the generic `IIdentityManager` without hard dependencies on Keycloak-specific libraries in the core API.
+- [ ] API endpoints correctly enforce `[Authorize]` role policies.
+- [ ] Resource authorization correctly blocks cross-user data access (e.g., User A accessing User B's inventory).
 
 ---
 
@@ -55,6 +59,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Robot Framework executes successfully against the local or staging URL.
 - [ ] JMeter test runs without catastrophic failure and produces a baseline report.
 - [ ] Test results are successfully published as pipeline artifacts.
+- [ ] Integration tests successfully assert 401/403 HTTP status codes for unauthorized role and resource access.
 
 ---
 

@@ -16,6 +16,8 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Establish foreign key relationships (e.g., `InventoryItem` -> `LocationId`, `BoxId`).
 - [ ] Introduce an `ItemLineage` (or `ItemLedger`) entity to track ownership and condition history.
 - [ ] Implement dynamic JSONB schema support for extensible attributes.
+- [ ] Add `OwnerId` and `OrganizationId` to `InventoryItem` and `Location` to support Resource-Based Authorization.
+- [ ] Update Keycloak Realm configuration (`ToTen-realm.json`) to define the 6-tier role model (`user`, `business_owner`, `internal_user`, `admin`, `super_admin`, `third_party`).
 - [ ] Generate the initial Entity Framework Core migration (`dotnet ef migrations add ExpandDomain`).
 
 ---
@@ -32,6 +34,9 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Define and implement Message Contracts for Azure Service Bus/MassTransit (e.g., `ItemMovedEvent`, `ManifestCreatedEvent`).
 - [ ] Implement Background Worker Consumers for the newly created events.
 - [ ] Abstract Keycloak/Identity logic behind a generic `IIdentityManager` interface (Pluggable IAM).
+- [ ] Implement ASP.NET Core Authorization Policies corresponding to the 6 roles.
+- [ ] Implement `IAuthorizationHandler` for Resource-Based Authorization (verifying data ownership).
+- [ ] Implement a Users/Roles vertical slice for Administrators to manage user permissions.
 
 ---
 
@@ -69,6 +74,7 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Scaffold Robot Framework for behavior-driven black-box testing.
 - [ ] Create a baseline JMeter load test for the `MoveItemToLocation` endpoint.
 - [ ] Ensure all test outputs are formatted for CI/CD pipeline ingestion.
+- [ ] Write API contract tests specifically validating 401 (Unauthorized) and 403 (Forbidden) boundaries for the 6-tier roles and cross-tenant data access.
 
 ---
 
