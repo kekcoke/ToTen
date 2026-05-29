@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
-using MassTransit;
+using Rebus.Bus;
 using ToTen.Contracts;
 using System.Security.Claims;
 using System.Text.Json;
@@ -18,7 +18,7 @@ public static class AcceptOfferEndpoint
             Guid offerId,
             ToTenContext context,
             IIdentityManager identityManager,
-            IPublishEndpoint publishEndpoint,
+            IBus bus,
             ClaimsPrincipal principal) =>
         {
             var user = identityManager.GetCurrentUser(principal);
@@ -77,7 +77,7 @@ public static class AcceptOfferEndpoint
             await context.SaveChangesAsync();
 
             // 6. Publish Event
-            await publishEndpoint.Publish(new ItemTransferredEvent(
+            await bus.Publish(new ItemTransferredEvent(
                 item.Id,
                 oldOwnerId,
                 item.OwnerId,

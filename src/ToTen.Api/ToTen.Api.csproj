@@ -11,8 +11,9 @@
     <PackageReference Include="Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.0" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.28.0" />
-    <PackageReference Include="MassTransit" Version="9.1.1" />
-    <PackageReference Include="MassTransit.Azure.ServiceBus.Core" Version="9.1.1" />
+    <PackageReference Include="Rebus" Version="8.9.2" />
+    <PackageReference Include="Rebus.ServiceProvider" Version="10.7.2" />
+    <PackageReference Include="Rebus.AzureServiceBus" Version="10.6.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">

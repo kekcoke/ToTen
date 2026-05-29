@@ -1,32 +1,31 @@
-using MassTransit;
+using Rebus.Handlers;
 using ToTen.Contracts;
 using ToTen.Worker.Services;
 
 namespace ToTen.Worker.Consumers;
 
-public class NotificationConsumer : IConsumer<SendNotificationEvent>
+public class NotificationHandler : IHandleMessages<SendNotificationEvent>
 {
     private readonly INotifier _notifier;
-    private readonly ILogger<NotificationConsumer> _logger;
+    private readonly ILogger<NotificationHandler> _logger;
 
-    public NotificationConsumer(INotifier notifier, ILogger<NotificationConsumer> logger)
+    public NotificationHandler(INotifier notifier, ILogger<NotificationHandler> logger)
     {
         _notifier = notifier;
         _logger = logger;
     }
 
-    public async Task Consume(ConsumeContext<SendNotificationEvent> context)
+    public async Task Handle(SendNotificationEvent message)
     {
-        var msg = context.Message;
-        _logger.LogInformation("Sending notification to user {UserId} via {Channel}", msg.UserId, msg.Channel);
+        _logger.LogInformation("Sending notification to user {UserId} via {Channel}", message.UserId, message.Channel);
 
-        if (msg.Channel.Equals("Email", StringComparison.OrdinalIgnoreCase))
+        if (message.Channel.Equals("Email", StringComparison.OrdinalIgnoreCase))
         {
-            await _notifier.SendEmailAsync("user@example.com", "Notification", msg.Message);
+            await _notifier.SendEmailAsync("user@example.com", "Notification", message.Message);
         }
         else
         {
-            await _notifier.SendSmsAsync("555-0199", msg.Message);
+            await _notifier.SendSmsAsync("555-0199", message.Message);
         }
     }
 }

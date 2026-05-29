@@ -1,39 +1,38 @@
-using MassTransit;
+using Rebus.Handlers;
 using ToTen.Contracts;
-using ToTen.Worker.Services;
 
 namespace ToTen.Worker.Consumers;
 
-public class ItemEventsConsumer : 
-    IConsumer<ItemMovedEvent>,
-    IConsumer<ItemListingEvent>,
-    IConsumer<ItemTransferredEvent>
+public class ItemEventsHandler :
+    IHandleMessages<ItemMovedEvent>,
+    IHandleMessages<ItemListingEvent>,
+    IHandleMessages<ItemTransferredEvent>
 {
-    private readonly ILogger<ItemEventsConsumer> _logger;
+    private readonly ILogger<ItemEventsHandler> _logger;
 
-    public ItemEventsConsumer(ILogger<ItemEventsConsumer> logger)
+    public ItemEventsHandler(ILogger<ItemEventsHandler> logger)
     {
         _logger = logger;
     }
 
-    public Task Consume(ConsumeContext<ItemMovedEvent> context)
+    public Task Handle(ItemMovedEvent message)
     {
-        _logger.LogInformation("Processing ItemMovedEvent: Item {ItemId} moved to {ToLocationId}", 
-            context.Message.ItemId, context.Message.ToLocationId);
+        _logger.LogInformation("Processing ItemMovedEvent: Item {ItemId} moved to {ToLocationId}",
+            message.ItemId, message.ToLocationId);
         return Task.CompletedTask;
     }
 
-    public Task Consume(ConsumeContext<ItemListingEvent> context)
+    public Task Handle(ItemListingEvent message)
     {
-        _logger.LogInformation("Processing ItemListingEvent: Item {ItemId} listed for {Price}", 
-            context.Message.ItemId, context.Message.Price);
+        _logger.LogInformation("Processing ItemListingEvent: Item {ItemId} listed for {Price}",
+            message.ItemId, message.Price);
         return Task.CompletedTask;
     }
 
-    public Task Consume(ConsumeContext<ItemTransferredEvent> context)
+    public Task Handle(ItemTransferredEvent message)
     {
-        _logger.LogInformation("Processing ItemTransferredEvent: Item {ItemId} transferred from {From} to {To}", 
-            context.Message.ItemId, context.Message.FromOwnerId, context.Message.ToOwnerId);
+        _logger.LogInformation("Processing ItemTransferredEvent: Item {ItemId} transferred from {From} to {To}",
+            message.ItemId, message.FromOwnerId, message.ToOwnerId);
         return Task.CompletedTask;
     }
 }

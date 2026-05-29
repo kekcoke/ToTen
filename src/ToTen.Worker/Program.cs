@@ -1,4 +1,4 @@
-using MassTransit;
+using Rebus.Config;
 using ToTen.Worker.Consumers;
 using ToTen.Worker.Services;
 
@@ -13,20 +13,18 @@ builder.Services.Configure<NotificationOptions>(
 // Infrastructure Services
 builder.Services.AddSingleton<INotifier, MockNotifier>();
 
-// Add MassTransit
-builder.Services.AddMassTransit(x =>
-{
-    // Register all consumers in the assembly
-    x.AddConsumers(typeof(ItemEventsConsumer).Assembly);
+// Add Rebus
+builder.Services.AddRebus(
+    configure => configure
+        .Transport(t => t.UseAzureServiceBus(
+            builder.Configuration.GetConnectionString("servicebus"),
+            "ToTen.Worker"))
+);
 
-    x.UsingAzureServiceBus((context, cfg) =>
-    {
-        cfg.Host(builder.Configuration.GetConnectionString("servicebus"));
-
-        // Use the same topology convention as the API
-        cfg.ConfigureEndpoints(context);
-    });
-});
+// Register message handlers
+builder.Services.AddRebusHandler<ItemEventsHandler>();
+builder.Services.AddRebusHandler<NotificationHandler>();
+builder.Services.AddRebusHandler<ManifestCreatedHandler>();
 
 var host = builder.Build();
 host.Run();

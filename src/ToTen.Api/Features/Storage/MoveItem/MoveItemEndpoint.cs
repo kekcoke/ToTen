@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using MassTransit;
+using Rebus.Bus;
 using Microsoft.AspNetCore.Mvc;
 using ToTen.Api.Data;
 using ToTen.Api.Shared.Identity;
@@ -16,7 +16,7 @@ public static class MoveItemEndpoint
             MoveItemRequest request,
             ToTenContext context,
             IIdentityManager identityManager,
-            IPublishEndpoint publishEndpoint,
+            IBus bus,
             ClaimsPrincipal principal) =>
         {
             var user = identityManager.GetCurrentUser(principal);
@@ -57,8 +57,8 @@ public static class MoveItemEndpoint
 
             var movedAt = DateTime.UtcNow;
 
-            // Publish event via MassTransit
-            await publishEndpoint.Publish(new ItemMovedEvent(
+            // Publish event via Rebus
+            await bus.Publish(new ItemMovedEvent(
                 item.Id,
                 oldLocationId,
                 request.LocationId ?? Guid.Empty,

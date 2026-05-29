@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Rebus.Bus;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
-using MassTransit;
 using ToTen.Contracts;
 
 namespace ToTen.Api.Features.Manifests.CreateManifest;
@@ -15,7 +15,7 @@ public static class CreateManifestEndpoint
             CreateManifestRequest request,
             ToTenContext context,
             IIdentityManager identityManager,
-            IPublishEndpoint publishEndpoint,
+            IBus bus,
             System.Security.Claims.ClaimsPrincipal principal) =>
         {
             var user = identityManager.GetCurrentUser(principal);
@@ -34,7 +34,7 @@ public static class CreateManifestEndpoint
             await context.SaveChangesAsync();
 
             // Publish event
-            await publishEndpoint.Publish(new ManifestCreatedEvent(
+            await bus.Publish(new ManifestCreatedEvent(
                 manifest.Id,
                 manifest.OrganizationId ?? Guid.Empty,
                 manifest.SourceLocationId.ToString(),

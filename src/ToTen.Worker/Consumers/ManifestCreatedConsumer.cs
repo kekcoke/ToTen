@@ -1,21 +1,21 @@
-using MassTransit;
+using Rebus.Handlers;
 using ToTen.Contracts;
 
 namespace ToTen.Worker.Consumers;
 
-public class ManifestCreatedConsumer : IConsumer<ManifestCreatedEvent>
+public class ManifestCreatedHandler : IHandleMessages<ManifestCreatedEvent>
 {
-    private readonly ILogger<ManifestCreatedConsumer> _logger;
+    private readonly ILogger<ManifestCreatedHandler> _logger;
 
-    public ManifestCreatedConsumer(ILogger<ManifestCreatedConsumer> logger)
+    public ManifestCreatedHandler(ILogger<ManifestCreatedHandler> logger)
     {
         _logger = logger;
     }
 
-    public Task Consume(ConsumeContext<ManifestCreatedEvent> context)
+    public Task Handle(ManifestCreatedEvent message)
     {
-        _logger.LogInformation("Processing ManifestCreatedEvent: Manifest {ManifestId} for Org {OrgId}", 
-            context.Message.ManifestId, context.Message.OrganizationId);
+        _logger.LogInformation("Processing ManifestCreatedEvent: Manifest {ManifestId} for Org {OrgId}",
+            message.ManifestId, message.OrganizationId);
         return Task.CompletedTask;
     }
 }

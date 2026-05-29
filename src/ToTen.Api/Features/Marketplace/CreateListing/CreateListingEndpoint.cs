@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
-using MassTransit;
+using Rebus.Bus;
 using ToTen.Contracts;
 using System.Security.Claims;
 
@@ -16,7 +16,7 @@ public static class CreateListingEndpoint
             CreateListingRequest request,
             ToTenContext context,
             IIdentityManager identityManager,
-            IPublishEndpoint publishEndpoint,
+            IBus bus,
             ClaimsPrincipal principal) =>
         {
             var user = identityManager.GetCurrentUser(principal);
@@ -41,7 +41,7 @@ public static class CreateListingEndpoint
             await context.SaveChangesAsync();
 
             // Publish event
-            await publishEndpoint.Publish(new ItemListingEvent(
+            await bus.Publish(new ItemListingEvent(
                 item.Id,
                 listing.Id,
                 listing.Price));

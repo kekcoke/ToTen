@@ -32,9 +32,9 @@ var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
 
 builder.AddToTenNpgsql<ToTenContext>("ToTenDB", credential);
 
-// Infrastructure (Identity, SignalR, MassTransit)
+// Infrastructure (Identity, SignalR, Rebus)
 builder.Services.AddToTenIdentityAndSignalR();
-builder.Services.AddToTenMassTransit(builder.Configuration);
+builder.Services.AddToTenRebus(builder.Configuration);
 
 // Configure authentication options with validation
 builder.Services.AddOptions<AuthOptions>()

@@ -14,7 +14,7 @@ This document outlines the overarching specification across all project phases. 
 - [x] Implement **Marketplace Endpoints**: Create listing, submit offer.
 - [x] Implement Advanced Search endpoint supporting Geolocation (distance/radius), Text Search, and faceted filtering/sorting.
 - [x] Modify Marketplace `Transaction` logic to write immutable records to `ItemLineage` and publish `ItemTransferredEvent`.
-- [x] Define and implement Message Contracts for Azure Service Bus/MassTransit (e.g., `ItemMovedEvent`, `ManifestCreatedEvent`).
+- [x] Define and implement Message Contracts for Azure Service Bus/Rebus (e.g., `ItemMovedEvent`, `ManifestCreatedEvent`).
 - [x] Implement Background Worker Consumers for the newly created events.
 - [x] Implement a `Communications` vertical slice with an ASP.NET Core SignalR `ChatHub`.
 - [x] Implement Worker consumers for `SendNotificationEvent` (Mocked for Phase 2).
