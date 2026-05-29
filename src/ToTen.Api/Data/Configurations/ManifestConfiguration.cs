@@ -23,5 +23,10 @@ public class ManifestConfiguration : IEntityTypeConfiguration<Manifest>
         builder.HasOne(m => m.Organization)
             .WithMany()
             .HasForeignKey(m => m.OrganizationId);
+
+        builder.HasMany<Box>()
+            .WithOne(b => b.Manifest)
+            .HasForeignKey(b => b.ManifestId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

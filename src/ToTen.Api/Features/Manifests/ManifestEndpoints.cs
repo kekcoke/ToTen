@@ -1,3 +1,4 @@
+using ToTen.Api.Features.Manifests.AssociateBoxes;
 using ToTen.Api.Features.Manifests.CreateManifest;
 using ToTen.Api.Features.Manifests.GenerateQR;
 
@@ -9,5 +10,6 @@ public static class ManifestEndpoints
     {
         app.MapCreateManifest();
         app.MapGenerateQR();
+        app.MapAssociateBoxes();
     }
 }
