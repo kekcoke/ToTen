@@ -7,7 +7,9 @@ using ToTen.Api.Shared.OpenApi;
 using ToTen.Api.Shared.Authentication;
 using Microsoft.AspNetCore.HttpLogging;
 using ToTen.Api.Features.Categories;
+using ToTen.Api.Features.Manifests;
 using ToTen.Api.Features.Storage;
+using ToTen.Api.Shared.Infrastructure;
 using ToTen.Api.Shared.Identity;
 using ToTen.Api.Shared.Messaging;
 
@@ -59,6 +61,10 @@ builder.AddToTenCors();
 
 builder.Services.AddValidation();
 
+// Infrastructure Services
+builder.Services.AddScoped<IStorageService, AzureStorageService>();
+builder.Services.AddScoped<IQRCodeService, QRCodeService>();
+
 var app = builder.Build();
 
 app.UseCors();
@@ -67,6 +73,7 @@ app.MapDefaultEndpoints();
 app.MapInventoryItems();
 app.MapCategories();
 app.MapStorageEndpoints();
+app.MapManifestEndpoints();
 app.MapToTenHubs();
 
 app.UseHttpLogging();
