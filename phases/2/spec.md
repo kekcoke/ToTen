@@ -10,7 +10,7 @@ This document outlines the overarching specification across all project phases. 
 **To-Dos**:
 - [ ] Implement **Home Storage Endpoints**: `CreateLocation`, `MoveItemToLocation`.
 - [x] Implement **Manifest Endpoints**: Generate Moving Manifest, associate boxes.
-- [x] Implement QR Code generation service for Manifest boxes (save to Azure Blob Storage).
+- [x] Implement QR Code generation service for Manifest boxes (save to Azure Blob Storage via Azurite emulator with `BlobServiceClient` DI wiring).
 - [x] Implement **Marketplace Endpoints**: Create listing, submit offer.
 - [x] Implement Advanced Search endpoint supporting Geolocation (distance/radius), Text Search, and faceted filtering/sorting.
 - [x] Modify Marketplace `Transaction` logic to write immutable records to `ItemLineage` and publish `ItemTransferredEvent`.

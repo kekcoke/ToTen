@@ -66,6 +66,9 @@ builder.AddToTenCors();
 
 builder.Services.AddValidation();
 
+// Azure Blob Storage client
+builder.AddAzureBlobServiceClient("blobs");
+
 // Infrastructure Services
 builder.Services.AddScoped<IStorageService, AzureStorageService>();
 builder.Services.AddScoped<IQRCodeService, QRCodeService>();

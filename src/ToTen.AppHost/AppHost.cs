@@ -25,6 +25,15 @@ var queue = serviceBus.AddServiceBusQueue("items-events");
 var apiQueue = serviceBus.AddServiceBusQueue("ToTen-Api-Queue");
 var workerQueue = serviceBus.AddServiceBusQueue("ToTen-Worker-Queue");
 
+// Add Azure Storage with Azurite emulator for local development
+var storage = builder.AddAzureStorage("storage")
+                    .RunAsEmulator(emulator =>
+                    {
+                        emulator.WithLifetime(ContainerLifetime.Persistent);
+                    });
+
+var blobs = storage.AddBlobs("blobs");
+
 var keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true, value: "admin");
 int? keycloakPort = builder.ExecutionContext.IsRunMode ? 8080 : null;
 var keycloak = builder.AddKeycloak("keycloak", adminPassword: keycloakPassword, port: keycloakPort)
@@ -38,8 +47,10 @@ var keycloakAuthority = ReferenceExpression.Create(
 var api = builder.AddProject<ToTen_Api>("ToTen-api")
             .WithReference(ToTenDb)
             .WithReference(serviceBus)
+            .WithReference(blobs)
             .WaitFor(ToTenDb)
             .WaitFor(serviceBus)
+            .WaitFor(blobs)
             .WithEnvironment("Auth__Authority", keycloakAuthority)
             .WithEnvironment("SWAGGERUI_CLIENTID", builder.Configuration["SwaggerUI:ClientId"])
             .WaitFor(keycloak)
@@ -62,7 +73,9 @@ var api = builder.AddProject<ToTen_Api>("ToTen-api")
 // Add Worker Service
 var worker = builder.AddProject<ToTen_Worker>("ToTen-worker")
                     .WithReference(serviceBus)
-                    .WaitFor(serviceBus);
+                    .WithReference(blobs)
+                    .WaitFor(serviceBus)
+                    .WaitFor(blobs);
 
 if (builder.ExecutionContext.IsRunMode)
 {

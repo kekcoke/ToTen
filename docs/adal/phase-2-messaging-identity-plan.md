@@ -14,6 +14,10 @@
 - **Topic/Queue Mapping**: Using `Rebus.AzureServiceBus` transport with `UseAzureServiceBus` for topic-based pub/sub. Custom topic naming via `TypeBased` conventions when needed.
 - **Handler Registration**: Using `AddRebusHandler<T>()` for explicit handler registration. Handlers implement `IHandleMessages<T>` with `Task Handle(T message)`.
 
+### Infrastructure (Aspire)
+- **Azure Storage (Azurite)**: Local blob storage emulator provisioned via `builder.AddAzureStorage("storage").RunAsEmulator()` with persistent lifetime. Blob container named `"blobs"` registered and referenced by both API and Worker.
+- **BlobServiceClient DI**: Registered via `builder.AddAzureBlobServiceClient("blobs")` in API `Program.cs`, resolving `BlobServiceClient` for `AzureStorageService` (QR code asset uploads) and `IStorageService`.
+
 ### SignalR & Identity
 - **IIdentityManager**: Abstraction to handle Keycloak/JWT logic.
 - **WebSocket Auth**: Middleware or Hub configuration to extract tokens from query strings (standard for SignalR).
@@ -24,10 +28,11 @@
     - `ToTen.Contracts`: [DONE] Define Phase 2 events.
     - `ToTen.Infrastructure`: [DONE] Implement `IIdentityManager` and Rebus registration (`AddToTenRebus`).
     - `ToTen.Api`: [DONE] SignalR Hub and Middleware setup.
+    - `ToTen.AppHost`: [DONE] Azure Storage emulator (Azurite) + `BlobServiceClient` DI wiring for `IStorageService`/`AzureStorageService`.
 3.  **Verification**: [PENDING] Write integration tests for event publishing and hub connectivity.
 
 ## 4. Expected Output
 A set of production-ready C# files including:
 - `RebusConfiguration.cs` (Rebus setup, renamed from `MassTransitConfiguration.cs`)
-- `ServiceBusProcessorFactory.cs` (Fallback pattern)
+- `AzureStorageService.cs` + `IStorageService.cs` (Blob storage abstraction with DI-resolved `BlobServiceClient`)
 - `IdentityAndSignalRConfiguration.cs` (DI and Hub setup)
