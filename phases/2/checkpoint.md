@@ -15,6 +15,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [ ] Marketplace search correctly filters items within a specified geographic radius and sorts by distance.
 - [x] SignalR `ChatHub` accepts WebSocket connections and successfully broadcasts messages.
 - [ ] Worker successfully processes a mocked `SendNotificationEvent`.
+- [x] QR Code generation service stores assets in Azure Blob Storage.
 - [x] Pub/Sub events are confirmed to be publishing to the local emulator/queue (via MassTransit Topology).
 - [x] Authentication works via the generic `IIdentityManager` without hard dependencies on Keycloak-specific libraries in the core API.
 - [ ] API endpoints correctly enforce `[Authorize]` role policies.
