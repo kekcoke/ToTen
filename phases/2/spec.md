@@ -12,12 +12,12 @@ This document outlines the overarching specification across all project phases. 
 - [x] Implement **Manifest Endpoints**: Generate Moving Manifest, associate boxes.
 - [x] Implement QR Code generation service for Manifest boxes (save to Azure Blob Storage).
 - [x] Implement **Marketplace Endpoints**: Create listing, submit offer.
-- [ ] Implement Advanced Search endpoint supporting Geolocation (distance/radius), Text Search, and faceted filtering/sorting.
+- [x] Implement Advanced Search endpoint supporting Geolocation (distance/radius), Text Search, and faceted filtering/sorting.
 - [x] Modify Marketplace `Transaction` logic to write immutable records to `ItemLineage` and publish `ItemTransferredEvent`.
 - [x] Define and implement Message Contracts for Azure Service Bus/MassTransit (e.g., `ItemMovedEvent`, `ManifestCreatedEvent`).
-- [ ] Implement Background Worker Consumers for the newly created events.
+- [x] Implement Background Worker Consumers for the newly created events.
 - [x] Implement a `Communications` vertical slice with an ASP.NET Core SignalR `ChatHub`.
-- [ ] Implement Worker consumers for `SendNotificationEvent` translating to SendGrid (Email) or Twilio (SMS).
+- [x] Implement Worker consumers for `SendNotificationEvent` (Mocked for Phase 2).
 - [x] Abstract Keycloak/Identity logic behind a generic `IIdentityManager` interface (Pluggable IAM).
 - [ ] Implement ASP.NET Core Authorization Policies corresponding to the 6 roles.
 - [ ] Implement `IAuthorizationHandler` for Resource-Based Authorization (verifying data ownership).

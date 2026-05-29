@@ -12,9 +12,9 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [x] Unit tests for new Handlers/Endpoints are written and passing (Compilation fixed).
 - [ ] API runs locally via Aspire (`dotnet run --project src/ToTen.AppHost`).
 - [ ] Swagger UI successfully loads and displays the newly added endpoints.
-- [ ] Marketplace search correctly filters items within a specified geographic radius and sorts by distance.
+- [x] Marketplace search correctly filters items within a specified geographic radius and sorts by distance.
 - [x] SignalR `ChatHub` accepts WebSocket connections and successfully broadcasts messages.
-- [ ] Worker successfully processes a mocked `SendNotificationEvent`.
+- [x] Worker successfully processes a mocked `SendNotificationEvent`.
 - [x] QR Code generation service stores assets in Azure Blob Storage.
 - [x] Pub/Sub events are confirmed to be publishing to the local emulator/queue (via MassTransit Topology).
 - [x] Authentication works via the generic `IIdentityManager` without hard dependencies on Keycloak-specific libraries in the core API.
