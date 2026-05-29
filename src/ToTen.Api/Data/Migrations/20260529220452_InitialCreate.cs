@@ -8,71 +8,25 @@ using NetTopologySuite.Geometries;
 namespace ToTen.Api.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class ExpandDomain : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Price",
-                table: "InventoryItems");
-
-            migrationBuilder.DropColumn(
-                name: "ReleaseDate",
-                table: "InventoryItems");
-
             migrationBuilder.AlterDatabase()
                 .Annotation("Npgsql:PostgresExtension:postgis", ",,");
 
-            migrationBuilder.AlterColumn<string>(
-                name: "Name",
-                table: "InventoryItems",
-                type: "character varying(255)",
-                maxLength: 255,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "character varying(50)",
-                oldMaxLength: 50);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "Description",
-                table: "InventoryItems",
-                type: "text",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "character varying(500)",
-                oldMaxLength: 500);
-
-            migrationBuilder.AddColumn<JsonDocument>(
-                name: "Attributes",
-                table: "InventoryItems",
-                type: "jsonb",
-                nullable: true);
-
-            migrationBuilder.AddColumn<Guid>(
-                name: "BoxId",
-                table: "InventoryItems",
-                type: "uuid",
-                nullable: true);
-
-            migrationBuilder.AddColumn<Guid>(
-                name: "LocationId",
-                table: "InventoryItems",
-                type: "uuid",
-                nullable: true);
-
-            migrationBuilder.AddColumn<Guid>(
-                name: "OrganizationId",
-                table: "InventoryItems",
-                type: "uuid",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "OwnerId",
-                table: "InventoryItems",
-                type: "text",
-                nullable: false,
-                defaultValue: "");
+            migrationBuilder.CreateTable(
+                name: "Categories",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Categories", x => x.Id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "ChatThreads",
@@ -85,27 +39,6 @@ namespace ToTen.Api.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ChatThreads", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Listings",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    InventoryItemId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    ReleaseDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Listings", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Listings_InventoryItems_InventoryItemId",
-                        column: x => x.InventoryItemId,
-                        principalTable: "InventoryItems",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -157,28 +90,6 @@ namespace ToTen.Api.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Transactions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    BuyerId = table.Column<string>(type: "text", nullable: false),
-                    SellerId = table.Column<string>(type: "text", nullable: false),
-                    Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    InventoryItemId = table.Column<Guid>(type: "uuid", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Transactions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Transactions_InventoryItems_InventoryItemId",
-                        column: x => x.InventoryItemId,
-                        principalTable: "InventoryItems",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ChatMessages",
                 columns: table => new
                 {
@@ -195,26 +106,6 @@ namespace ToTen.Api.Data.Migrations
                         name: "FK_ChatMessages_ChatThreads_ThreadId",
                         column: x => x.ThreadId,
                         principalTable: "ChatThreads",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Offers",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ListingId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Offers", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Offers_Listings_ListingId",
-                        column: x => x.ListingId,
-                        principalTable: "Listings",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -245,7 +136,8 @@ namespace ToTen.Api.Data.Migrations
                 columns: table => new
                 {
                     OrganizationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<string>(type: "text", nullable: false)
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Role = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -256,60 +148,6 @@ namespace ToTen.Api.Data.Migrations
                         principalTable: "Organizations",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ItemLineages",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    InventoryItemId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Action = table.Column<string>(type: "text", nullable: false),
-                    TransactionId = table.Column<Guid>(type: "uuid", nullable: true),
-                    ChangedByUserId = table.Column<string>(type: "text", nullable: false),
-                    Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    StateSnapshot = table.Column<JsonDocument>(type: "jsonb", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ItemLineages", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ItemLineages_InventoryItems_InventoryItemId",
-                        column: x => x.InventoryItemId,
-                        principalTable: "InventoryItems",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ItemLineages_Transactions_TransactionId",
-                        column: x => x.TransactionId,
-                        principalTable: "Transactions",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Boxes",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    LocationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    OwnerId = table.Column<string>(type: "text", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uuid", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Boxes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Boxes_Locations_LocationId",
-                        column: x => x.LocationId,
-                        principalTable: "Locations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Boxes_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -344,36 +182,181 @@ namespace ToTen.Api.Data.Migrations
                         principalColumn: "Id");
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryItems_Attributes",
-                table: "InventoryItems",
-                column: "Attributes")
-                .Annotation("Npgsql:IndexMethod", "gin");
+            migrationBuilder.CreateTable(
+                name: "Boxes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    LocationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    OwnerId = table.Column<string>(type: "text", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ManifestId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Boxes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Boxes_Locations_LocationId",
+                        column: x => x.LocationId,
+                        principalTable: "Locations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Boxes_Manifests_ManifestId",
+                        column: x => x.ManifestId,
+                        principalTable: "Manifests",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Boxes_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id");
+                });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryItems_BoxId",
-                table: "InventoryItems",
-                column: "BoxId");
+            migrationBuilder.CreateTable(
+                name: "InventoryItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    LastUpdatedBy = table.Column<string>(type: "text", nullable: false),
+                    OwnerId = table.Column<string>(type: "text", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uuid", nullable: true),
+                    LocationId = table.Column<Guid>(type: "uuid", nullable: true),
+                    BoxId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Attributes = table.Column<JsonDocument>(type: "jsonb", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InventoryItems_Boxes_BoxId",
+                        column: x => x.BoxId,
+                        principalTable: "Boxes",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_InventoryItems_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_InventoryItems_Locations_LocationId",
+                        column: x => x.LocationId,
+                        principalTable: "Locations",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_InventoryItems_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id");
+                });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryItems_LocationId",
-                table: "InventoryItems",
-                column: "LocationId");
+            migrationBuilder.CreateTable(
+                name: "Listings",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InventoryItemId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    ReleaseDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Listings", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Listings_InventoryItems_InventoryItemId",
+                        column: x => x.InventoryItemId,
+                        principalTable: "InventoryItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryItems_OrganizationId",
-                table: "InventoryItems",
-                column: "OrganizationId");
+            migrationBuilder.CreateTable(
+                name: "Transactions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    BuyerId = table.Column<string>(type: "text", nullable: false),
+                    SellerId = table.Column<string>(type: "text", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    InventoryItemId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Transactions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Transactions_InventoryItems_InventoryItemId",
+                        column: x => x.InventoryItemId,
+                        principalTable: "InventoryItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryItems_OwnerId",
-                table: "InventoryItems",
-                column: "OwnerId");
+            migrationBuilder.CreateTable(
+                name: "Offers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ListingId = table.Column<Guid>(type: "uuid", nullable: false),
+                    BuyerId = table.Column<string>(type: "text", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Offers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Offers_Listings_ListingId",
+                        column: x => x.ListingId,
+                        principalTable: "Listings",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ItemLineages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InventoryItemId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Action = table.Column<string>(type: "text", nullable: false),
+                    TransactionId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ChangedByUserId = table.Column<string>(type: "text", nullable: false),
+                    Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    StateSnapshot = table.Column<JsonDocument>(type: "jsonb", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ItemLineages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ItemLineages_InventoryItems_InventoryItemId",
+                        column: x => x.InventoryItemId,
+                        principalTable: "InventoryItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ItemLineages_Transactions_TransactionId",
+                        column: x => x.TransactionId,
+                        principalTable: "Transactions",
+                        principalColumn: "Id");
+                });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Boxes_LocationId",
                 table: "Boxes",
                 column: "LocationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Boxes_ManifestId",
+                table: "Boxes",
+                column: "ManifestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Boxes_OrganizationId",
@@ -389,6 +372,37 @@ namespace ToTen.Api.Data.Migrations
                 name: "IX_ChatMessages_ThreadId",
                 table: "ChatMessages",
                 column: "ThreadId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryItems_Attributes",
+                table: "InventoryItems",
+                column: "Attributes")
+                .Annotation("Npgsql:IndexMethod", "gin");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryItems_BoxId",
+                table: "InventoryItems",
+                column: "BoxId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryItems_CategoryId",
+                table: "InventoryItems",
+                column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryItems_LocationId",
+                table: "InventoryItems",
+                column: "LocationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryItems_OrganizationId",
+                table: "InventoryItems",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryItems_OwnerId",
+                table: "InventoryItems",
+                column: "OwnerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ItemLineages_ChangedByUserId",
@@ -461,55 +475,16 @@ namespace ToTen.Api.Data.Migrations
                 name: "IX_Transactions_InventoryItemId",
                 table: "Transactions",
                 column: "InventoryItemId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_InventoryItems_Boxes_BoxId",
-                table: "InventoryItems",
-                column: "BoxId",
-                principalTable: "Boxes",
-                principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_InventoryItems_Locations_LocationId",
-                table: "InventoryItems",
-                column: "LocationId",
-                principalTable: "Locations",
-                principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_InventoryItems_Organizations_OrganizationId",
-                table: "InventoryItems",
-                column: "OrganizationId",
-                principalTable: "Organizations",
-                principalColumn: "Id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_InventoryItems_Boxes_BoxId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_InventoryItems_Locations_LocationId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_InventoryItems_Organizations_OrganizationId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropTable(
-                name: "Boxes");
-
             migrationBuilder.DropTable(
                 name: "ChatMessages");
 
             migrationBuilder.DropTable(
                 name: "ItemLineages");
-
-            migrationBuilder.DropTable(
-                name: "Manifests");
 
             migrationBuilder.DropTable(
                 name: "NotificationPreferences");
@@ -530,91 +505,25 @@ namespace ToTen.Api.Data.Migrations
                 name: "Transactions");
 
             migrationBuilder.DropTable(
-                name: "Locations");
-
-            migrationBuilder.DropTable(
                 name: "Listings");
 
             migrationBuilder.DropTable(
+                name: "InventoryItems");
+
+            migrationBuilder.DropTable(
+                name: "Boxes");
+
+            migrationBuilder.DropTable(
+                name: "Categories");
+
+            migrationBuilder.DropTable(
+                name: "Manifests");
+
+            migrationBuilder.DropTable(
+                name: "Locations");
+
+            migrationBuilder.DropTable(
                 name: "Organizations");
-
-            migrationBuilder.DropIndex(
-                name: "IX_InventoryItems_Attributes",
-                table: "InventoryItems");
-
-            migrationBuilder.DropIndex(
-                name: "IX_InventoryItems_BoxId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropIndex(
-                name: "IX_InventoryItems_LocationId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropIndex(
-                name: "IX_InventoryItems_OrganizationId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropIndex(
-                name: "IX_InventoryItems_OwnerId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropColumn(
-                name: "Attributes",
-                table: "InventoryItems");
-
-            migrationBuilder.DropColumn(
-                name: "BoxId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropColumn(
-                name: "LocationId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropColumn(
-                name: "OrganizationId",
-                table: "InventoryItems");
-
-            migrationBuilder.DropColumn(
-                name: "OwnerId",
-                table: "InventoryItems");
-
-            migrationBuilder.AlterDatabase()
-                .OldAnnotation("Npgsql:PostgresExtension:postgis", ",,");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "Name",
-                table: "InventoryItems",
-                type: "character varying(50)",
-                maxLength: 50,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "character varying(255)",
-                oldMaxLength: 255);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "Description",
-                table: "InventoryItems",
-                type: "character varying(500)",
-                maxLength: 500,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "text");
-
-            migrationBuilder.AddColumn<decimal>(
-                name: "Price",
-                table: "InventoryItems",
-                type: "numeric(5,2)",
-                precision: 5,
-                scale: 2,
-                nullable: false,
-                defaultValue: 0m);
-
-            migrationBuilder.AddColumn<DateOnly>(
-                name: "ReleaseDate",
-                table: "InventoryItems",
-                type: "date",
-                nullable: false,
-                defaultValue: new DateOnly(1, 1, 1));
         }
     }
 }

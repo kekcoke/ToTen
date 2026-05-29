@@ -3,7 +3,7 @@
 **Status**: Planning
 
 ## 1. Security & Identity (Keycloak)
-- Update `toten-realm.json`:
+- Update `ToTen-realm.json`:
     - Add roles: `user`, `business_owner`, `internal_user`, `admin`, `super_admin`, `third_party`.
     - Update `demo` user with default roles.
 

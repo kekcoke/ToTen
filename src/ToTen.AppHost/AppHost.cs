@@ -1,3 +1,4 @@
+using Aspire.Hosting.ApplicationModel;
 using Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -5,6 +6,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var postgres = builder.AddAzurePostgresFlexibleServer("postgres")
                     .RunAsContainer(postgres =>
                     {
+                        postgres.WithImage("postgis/postgis")
+                                .WithImageTag("17-3.4");
                         postgres.WithDataVolume();
                         postgres.WithPgAdmin(pgAdmin =>
                         {
@@ -37,7 +40,19 @@ var blobs = storage.AddBlobs("blobs");
 var keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true, value: "admin");
 int? keycloakPort = builder.ExecutionContext.IsRunMode ? 8080 : null;
 var keycloak = builder.AddKeycloak("keycloak", adminPassword: keycloakPassword, port: keycloakPort)
-                      .WithLifetime(ContainerLifetime.Persistent);
+                      .WithLifetime(ContainerLifetime.Session)
+                      .WithRealmImport("./realms")
+                      .WithArgs("--verbose");
+
+// AddKeycloak auto-registers a health check against the HTTPS management port (9000).
+// That port uses a self-signed cert that is untrusted by the AppHost's HttpClient,
+// so WaitFor(keycloak) stalls indefinitely. Replace it with an HTTP check on the
+// app port (8080): /realms/master returns 200 only once Keycloak is fully started.
+foreach (var hc in keycloak.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList())
+{
+    keycloak.Resource.Annotations.Remove(hc);
+}
+keycloak.WithHttpHealthCheck("/realms/master");
 
 var keycloakAuthority = ReferenceExpression.Create(
     $"{keycloak.GetEndpoint("http").Property(EndpointProperty.Url)}/realms/ToTen"
@@ -77,11 +92,6 @@ var worker = builder.AddProject<ToTen_Worker>("ToTen-worker")
                     .WaitFor(serviceBus)
                     .WaitFor(blobs);
 
-if (builder.ExecutionContext.IsRunMode)
-{
-    keycloak.WithDataVolume()
-            .WithRealmImport("./realms");
-}
 
 if (builder.ExecutionContext.IsPublishMode)
 {
