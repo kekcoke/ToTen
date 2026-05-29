@@ -1,3 +1,4 @@
+using Aspire.Hosting.ApplicationModel;
 using Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -40,6 +41,16 @@ var keycloak = builder.AddKeycloak("keycloak", adminPassword: keycloakPassword, 
                       .WithLifetime(ContainerLifetime.Session)
                       .WithRealmImport("./realms")
                       .WithArgs("--verbose");
+
+// AddKeycloak auto-registers a health check against the HTTPS management port (9000).
+// That port uses a self-signed cert that is untrusted by the AppHost's HttpClient,
+// so WaitFor(keycloak) stalls indefinitely. Replace it with an HTTP check on the
+// app port (8080): /realms/master returns 200 only once Keycloak is fully started.
+foreach (var hc in keycloak.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList())
+{
+    keycloak.Resource.Annotations.Remove(hc);
+}
+keycloak.WithHttpHealthCheck("/realms/master");
 
 var keycloakAuthority = ReferenceExpression.Create(
     $"{keycloak.GetEndpoint("http").Property(EndpointProperty.Url)}/realms/ToTen"
