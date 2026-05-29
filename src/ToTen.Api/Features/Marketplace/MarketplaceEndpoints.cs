@@ -1,0 +1,13 @@
+using ToTen.Api.Features.Marketplace.CreateListing;
+using ToTen.Api.Features.Marketplace.SubmitOffer;
+
+namespace ToTen.Api.Features.Marketplace;
+
+public static class MarketplaceEndpoints
+{
+    public static void MapMarketplaceEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapCreateListing();
+        app.MapSubmitOffer();
+    }
+}

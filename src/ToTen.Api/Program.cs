@@ -8,6 +8,7 @@ using ToTen.Api.Shared.Authentication;
 using Microsoft.AspNetCore.HttpLogging;
 using ToTen.Api.Features.Categories;
 using ToTen.Api.Features.Manifests;
+using ToTen.Api.Features.Marketplace;
 using ToTen.Api.Features.Storage;
 using ToTen.Api.Shared.Infrastructure;
 using ToTen.Api.Shared.Identity;
@@ -74,6 +75,7 @@ app.MapInventoryItems();
 app.MapCategories();
 app.MapStorageEndpoints();
 app.MapManifestEndpoints();
+app.MapMarketplaceEndpoints();
 app.MapToTenHubs();
 
 app.UseHttpLogging();
