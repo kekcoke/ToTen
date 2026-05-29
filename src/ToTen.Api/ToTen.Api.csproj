@@ -12,6 +12,7 @@
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Aspire.Azure.Storage.Blobs" Version="13.1.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.28.0" />
+    <PackageReference Include="Microsoft.Azure.SignalR" Version="1.33.0" />
     <PackageReference Include="Rebus" Version="8.9.2" />
     <PackageReference Include="Rebus.ServiceProvider" Version="10.7.2" />
     <PackageReference Include="Rebus.AzureServiceBus" Version="10.6.0" />
