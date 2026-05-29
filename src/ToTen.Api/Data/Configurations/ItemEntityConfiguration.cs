@@ -30,11 +30,15 @@ public class ItemEntityConfiguration : IEntityTypeConfiguration<InventoryItem>
             .HasForeignKey(i => i.BoxId);
             
         builder.HasOne(i => i.Organization)
-            .WithMany()
+            .WithMany(o => o.InventoryItems)
             .HasForeignKey(i => i.OrganizationId);
 
         // Indices for RBA
         builder.HasIndex(i => i.OwnerId);
         builder.HasIndex(i => i.OrganizationId);
+
+        // GIN index for JSONB
+        builder.HasIndex(i => i.Attributes)
+            .HasMethod("gin");
     }
 }

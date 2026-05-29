@@ -51,6 +51,8 @@ namespace ToTen.Api.Data.Migrations
 
                     b.HasIndex("OrganizationId");
 
+                    b.HasIndex("OwnerId");
+
                     b.ToTable("Boxes");
                 });
 
@@ -155,6 +157,10 @@ namespace ToTen.Api.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Attributes");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Attributes"), "gin");
+
                     b.HasIndex("BoxId");
 
                     b.HasIndex("CategoryId");
@@ -196,6 +202,8 @@ namespace ToTen.Api.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ChangedByUserId");
+
                     b.HasIndex("InventoryItemId");
 
                     b.HasIndex("TransactionId");
@@ -216,7 +224,8 @@ namespace ToTen.Api.Data.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("numeric");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateOnly>("ReleaseDate")
                         .HasColumnType("date");
@@ -235,7 +244,7 @@ namespace ToTen.Api.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Point>("Coordinates")
-                        .HasColumnType("geometry");
+                        .HasColumnType("geometry(Point, 4326)");
 
                     b.Property<JsonDocument>("Metadata")
                         .HasColumnType("jsonb");
@@ -257,6 +266,10 @@ namespace ToTen.Api.Data.Migrations
                     b.HasIndex("Coordinates");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Coordinates"), "gist");
+
+                    b.HasIndex("Metadata");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Metadata"), "gin");
 
                     b.HasIndex("OrganizationId");
 
@@ -320,6 +333,8 @@ namespace ToTen.Api.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("Notifications");
                 });
 
@@ -351,7 +366,8 @@ namespace ToTen.Api.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("numeric");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<Guid>("ListingId")
                         .HasColumnType("uuid");
@@ -386,14 +402,16 @@ namespace ToTen.Api.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("TaxId")
                         .HasColumnType("text");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
 
@@ -420,7 +438,8 @@ namespace ToTen.Api.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("numeric");
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("BuyerId")
                         .IsRequired()
@@ -452,7 +471,7 @@ namespace ToTen.Api.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("ToTen.Api.Models.Organization", "Organization")
-                        .WithMany()
+                        .WithMany("Boxes")
                         .HasForeignKey("OrganizationId");
 
                     b.Navigation("Location");
@@ -488,7 +507,7 @@ namespace ToTen.Api.Data.Migrations
                         .HasForeignKey("LocationId");
 
                     b.HasOne("ToTen.Api.Models.Organization", "Organization")
-                        .WithMany()
+                        .WithMany("InventoryItems")
                         .HasForeignKey("OrganizationId");
 
                     b.Navigation("Box");
@@ -531,7 +550,7 @@ namespace ToTen.Api.Data.Migrations
             modelBuilder.Entity("ToTen.Api.Models.Location", b =>
                 {
                     b.HasOne("ToTen.Api.Models.Organization", "Organization")
-                        .WithMany()
+                        .WithMany("Locations")
                         .HasForeignKey("OrganizationId");
 
                     b.Navigation("Organization");
@@ -542,7 +561,7 @@ namespace ToTen.Api.Data.Migrations
                     b.HasOne("ToTen.Api.Models.Location", "DestinationLocation")
                         .WithMany()
                         .HasForeignKey("DestinationLocationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ToTen.Api.Models.Organization", "Organization")
@@ -552,7 +571,7 @@ namespace ToTen.Api.Data.Migrations
                     b.HasOne("ToTen.Api.Models.Location", "SourceLocation")
                         .WithMany()
                         .HasForeignKey("SourceLocationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("DestinationLocation");
@@ -602,6 +621,12 @@ namespace ToTen.Api.Data.Migrations
 
             modelBuilder.Entity("ToTen.Api.Models.Organization", b =>
                 {
+                    b.Navigation("Boxes");
+
+                    b.Navigation("InventoryItems");
+
+                    b.Navigation("Locations");
+
                     b.Navigation("Memberships");
                 });
 #pragma warning restore 612, 618

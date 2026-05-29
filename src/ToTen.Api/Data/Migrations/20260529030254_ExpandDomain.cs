@@ -93,7 +93,7 @@ namespace ToTen.Api.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     InventoryItemId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Price = table.Column<decimal>(type: "numeric", nullable: false),
+                    Price = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     ReleaseDate = table.Column<DateOnly>(type: "date", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
@@ -143,10 +143,10 @@ namespace ToTen.Api.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     LegalName = table.Column<string>(type: "text", nullable: true),
                     TaxId = table.Column<string>(type: "text", nullable: true),
-                    Type = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Industry = table.Column<string>(type: "text", nullable: true),
                     DateCreated = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     DateDeleted = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
@@ -163,7 +163,7 @@ namespace ToTen.Api.Data.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     BuyerId = table.Column<string>(type: "text", nullable: false),
                     SellerId = table.Column<string>(type: "text", nullable: false),
-                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     InventoryItemId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
@@ -205,7 +205,7 @@ namespace ToTen.Api.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ListingId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
@@ -225,7 +225,7 @@ namespace ToTen.Api.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Coordinates = table.Column<Point>(type: "geometry", nullable: true),
+                    Coordinates = table.Column<Point>(type: "geometry(Point, 4326)", nullable: true),
                     OwnerId = table.Column<string>(type: "text", nullable: false),
                     OrganizationId = table.Column<Guid>(type: "uuid", nullable: true),
                     Metadata = table.Column<JsonDocument>(type: "jsonb", nullable: true)
@@ -330,19 +330,25 @@ namespace ToTen.Api.Data.Migrations
                         column: x => x.DestinationLocationId,
                         principalTable: "Locations",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Manifests_Locations_SourceLocationId",
                         column: x => x.SourceLocationId,
                         principalTable: "Locations",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Manifests_Organizations_OrganizationId",
                         column: x => x.OrganizationId,
                         principalTable: "Organizations",
                         principalColumn: "Id");
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryItems_Attributes",
+                table: "InventoryItems",
+                column: "Attributes")
+                .Annotation("Npgsql:IndexMethod", "gin");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryItems_BoxId",
@@ -375,9 +381,19 @@ namespace ToTen.Api.Data.Migrations
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Boxes_OwnerId",
+                table: "Boxes",
+                column: "OwnerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ChatMessages_ThreadId",
                 table: "ChatMessages",
                 column: "ThreadId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ItemLineages_ChangedByUserId",
+                table: "ItemLineages",
+                column: "ChangedByUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ItemLineages_InventoryItemId",
@@ -399,6 +415,12 @@ namespace ToTen.Api.Data.Migrations
                 table: "Locations",
                 column: "Coordinates")
                 .Annotation("Npgsql:IndexMethod", "gist");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Locations_Metadata",
+                table: "Locations",
+                column: "Metadata")
+                .Annotation("Npgsql:IndexMethod", "gin");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Locations_OrganizationId",
@@ -424,6 +446,11 @@ namespace ToTen.Api.Data.Migrations
                 name: "IX_Manifests_SourceLocationId",
                 table: "Manifests",
                 column: "SourceLocationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_UserId",
+                table: "Notifications",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Offers_ListingId",
@@ -510,6 +537,10 @@ namespace ToTen.Api.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Organizations");
+
+            migrationBuilder.DropIndex(
+                name: "IX_InventoryItems_Attributes",
+                table: "InventoryItems");
 
             migrationBuilder.DropIndex(
                 name: "IX_InventoryItems_BoxId",

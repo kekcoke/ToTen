@@ -15,6 +15,7 @@ public class Organization
     public ICollection<OrganizationMembership> Memberships { get; set; } = [];
     public ICollection<InventoryItem> InventoryItems { get; set; } = [];
     public ICollection<Location> Locations { get; set; } = [];
+    public ICollection<Box> Boxes { get; set; } = [];
 }
 
 public class OrganizationMembership
