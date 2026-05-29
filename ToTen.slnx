@@ -6,7 +6,7 @@
   </Configurations>
   <Folder Name="/src/">
     <Project Path="src/ToTen.Api/ToTen.Api.csproj" />
-    <Project Path="src/ToTen.AppHost/ToTen.AppHost.csproj" />
+    <Project Path="src/ToTen.AppHost/ToTenAppHost.csproj" />
     <Project Path="src/ToTen.Contracts/ToTen.Contracts.csproj" />
     <Project Path="src/ToTen.ServiceDefaults/ToTen.ServiceDefaults.csproj" />
     <Project Path="src/ToTen.Worker/ToTen.Worker.csproj" />
