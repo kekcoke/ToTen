@@ -9,8 +9,8 @@ This document outlines the overarching specification across all project phases. 
 **Objective**: Implement the application logic, routing, and asynchronous workflows for the new domains.
 **To-Dos**:
 - [ ] Implement **Home Storage Endpoints**: `CreateLocation`, `MoveItemToLocation`.
-- [ ] Implement **Manifest Endpoints**: Generate Moving Manifest, associate boxes.
-- [ ] Implement QR Code generation service for Manifest boxes (save to Azure Blob Storage).
+- [x] Implement **Manifest Endpoints**: Generate Moving Manifest, associate boxes.
+- [x] Implement QR Code generation service for Manifest boxes (save to Azure Blob Storage).
 - [ ] Implement **Marketplace Endpoints**: Create listing, submit offer.
 - [ ] Implement Advanced Search endpoint supporting Geolocation (distance/radius), Text Search, and faceted filtering/sorting.
 - [ ] Modify Marketplace `Transaction` logic to write immutable records to `ItemLineage` and publish `ItemTransferredEvent`.
