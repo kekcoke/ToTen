@@ -10,7 +10,7 @@ namespace ToTen.Api.Features.Items;
 
 public static class ItemsEndpoints
 {
-    public static void MapItems(this IEndpointRouteBuilder app)
+    public static void MapInventoryItems(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/items");
 

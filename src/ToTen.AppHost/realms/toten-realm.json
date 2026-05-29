@@ -57,6 +57,42 @@
       "containerId" : "8925958f-9702-49a7-8312-b35d5db6e252",
       "attributes" : { }
     }, {
+      "name": "user",
+      "description": "Standard individual user",
+      "composite": false,
+      "clientRole": false,
+      "containerId": "8925958f-9702-49a7-8312-b35d5db6e252"
+    }, {
+      "name": "business_owner",
+      "description": "Owner of a business organization",
+      "composite": false,
+      "clientRole": false,
+      "containerId": "8925958f-9702-49a7-8312-b35d5db6e252"
+    }, {
+      "name": "internal_user",
+      "description": "ToTen internal staff",
+      "composite": false,
+      "clientRole": false,
+      "containerId": "8925958f-9702-49a7-8312-b35d5db6e252"
+    }, {
+      "name": "admin",
+      "description": "Realm administrator",
+      "composite": false,
+      "clientRole": false,
+      "containerId": "8925958f-9702-49a7-8312-b35d5db6e252"
+    }, {
+      "name": "super_admin",
+      "description": "Global system administrator",
+      "composite": false,
+      "clientRole": false,
+      "containerId": "8925958f-9702-49a7-8312-b35d5db6e252"
+    }, {
+      "name": "third_party",
+      "description": "Third-party integration service",
+      "composite": false,
+      "clientRole": false,
+      "containerId": "8925958f-9702-49a7-8312-b35d5db6e252"
+    }, {
       "id" : "fc2bc222-b3c3-4381-b174-627408290a6f",
       "name" : "default-roles-ToTen",
       "description" : "${role_default-roles}",
@@ -401,7 +437,7 @@
     } ],
     "disableableCredentialTypes" : [ ],
     "requiredActions" : [ ],
-    "realmRoles" : [ "default-roles-ToTen" ],
+    "realmRoles" : [ "default-roles-ToTen", "user" ],
     "notBefore" : 0,
     "groups" : [ ]
   } ],
