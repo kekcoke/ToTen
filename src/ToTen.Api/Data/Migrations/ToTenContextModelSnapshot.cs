@@ -34,6 +34,9 @@ namespace ToTen.Api.Data.Migrations
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ManifestId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -48,6 +51,8 @@ namespace ToTen.Api.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LocationId");
+
+                    b.HasIndex("ManifestId");
 
                     b.HasIndex("OrganizationId");
 
@@ -369,6 +374,10 @@ namespace ToTen.Api.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("BuyerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<Guid>("ListingId")
                         .HasColumnType("uuid");
 
@@ -426,6 +435,10 @@ namespace ToTen.Api.Data.Migrations
                     b.Property<string>("UserId")
                         .HasColumnType("text");
 
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("OrganizationId", "UserId");
 
                     b.ToTable("OrganizationMemberships");
@@ -470,11 +483,18 @@ namespace ToTen.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("ToTen.Api.Models.Manifest", "Manifest")
+                        .WithMany()
+                        .HasForeignKey("ManifestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ToTen.Api.Models.Organization", "Organization")
                         .WithMany("Boxes")
                         .HasForeignKey("OrganizationId");
 
                     b.Navigation("Location");
+
+                    b.Navigation("Manifest");
 
                     b.Navigation("Organization");
                 });
