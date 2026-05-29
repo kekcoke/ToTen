@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # ToTen
 =======
 # ToTen Backend .NET Template 
@@ -426,4 +425,3 @@ In production (Azure), the following are automatically configured:
 ## License
 
 This PRO template is provided as-is for educational and development purposes.
->>>>>>> 9d6a26a (init readme.md)
