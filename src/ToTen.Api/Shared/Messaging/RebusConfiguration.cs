@@ -12,7 +12,7 @@ public static class RebusConfiguration
             configure => configure
                 .Transport(t => t.UseAzureServiceBus(
                     configuration.GetConnectionString("ServiceBus"),
-                    "ToTen.Api"))
+                    "ToTen-Api-Queue"))
         );
 
         return services;

@@ -22,7 +22,8 @@ var serviceBus = builder.AddAzureServiceBus("servicebus")
                         });
 
 var queue = serviceBus.AddServiceBusQueue("items-events");
-var workerQueue = serviceBus.AddServiceBusQueue("ToTen-Worker");
+var apiQueue = serviceBus.AddServiceBusQueue("ToTen-Api-Queue");
+var workerQueue = serviceBus.AddServiceBusQueue("ToTen-Worker-Queue");
 
 var keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true, value: "admin");
 int? keycloakPort = builder.ExecutionContext.IsRunMode ? 8080 : null;
