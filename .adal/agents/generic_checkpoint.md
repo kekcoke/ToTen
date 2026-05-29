@@ -5,41 +5,6 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 
 ---
 
-## Phase 1: Domain Modeling & DB Migrations (Architect Agent)
-**Validation Checklist**:
-- [ ] EF Core models compile without syntax errors.
-- [ ] Navigation properties and foreign keys are correctly mapped.
-- [ ] `ItemLineage` schema includes foreign keys to items, owners, transactions, and a JSONB state snapshot.
-- [ ] Chat and Notification schemas are correctly mapped to users and transactions.
-- [ ] `dotnet ef migrations add` completes successfully.
-- [ ] `dotnet ef database update` executes cleanly on a local/test database.
-- [ ] No unauthorized modifications were made to API endpoint files.
-- [ ] Keycloak Realm export includes the 6 roles and required scopes.
-- [ ] EF models include `OwnerId` and `OrganizationId` where applicable.
-- [ ] `Organization` and `OrganizationMembership` entities are successfully mapped with a many-to-many relationship.
-- [ ] PostGIS extension is enabled in DbContext and spatial/GIST indexes are properly configured.
-
----
-
-## Phase 2: Vertical Slices Implementation (Backend Agent)
-**Validation Checklist**:
-- [ ] Project builds successfully (`dotnet build`).
-- [ ] Models, data transfer objects (DTOs) adhere to database schema.
-- [ ] Completing a Marketplace transaction successfully creates an immutable `ItemLineage` ledger entry.
-- [ ] Unit tests for new Handlers/Endpoints are written and passing.
-- [ ] API runs locally via Aspire (`dotnet run --project src/ToTen.AppHost`).
-- [ ] Swagger UI successfully loads and displays the newly added endpoints.
-- [ ] Marketplace search correctly filters items within a specified geographic radius and sorts by distance.
-- [ ] SignalR `ChatHub` accepts WebSocket connections and successfully broadcasts messages.
-- [ ] Worker successfully processes a mocked `SendNotificationEvent`.
-- [ ] Pub/Sub events are confirmed to be publishing to the local emulator/queue.
-- [ ] Authentication works via the generic `IIdentityManager` without hard dependencies on Keycloak-specific libraries in the core API.
-- [ ] API endpoints correctly enforce `[Authorize]` role policies.
-- [ ] Resource authorization correctly blocks cross-user data access (e.g., User A accessing User B's inventory).
-- [ ] Group CRUD and membership invitation workflows execute successfully.
-- [ ] Resource authorization correctly permits access to resources owned by an `OrganizationId` if the user is an active member.
-
----
 
 ## Phase 3: Infrastructure as Code (Architect / DevSecOps Agent)
 **Validation Checklist**:

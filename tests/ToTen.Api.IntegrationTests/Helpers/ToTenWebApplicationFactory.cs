@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace ToTen.Api.IntegrationTests.Helpers;
 
-internal class ToTenWebApplicationFactory(
+public class ToTenWebApplicationFactory(
     IDatabaseContainer dbContainer,
     bool authenticationSucceeds = true,
     string? email = null

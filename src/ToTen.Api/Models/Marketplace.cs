@@ -18,6 +18,7 @@ public class Offer
     public Guid ListingId { get; set; }
     public Listing? Listing { get; set; }
     
+    public required string BuyerId { get; set; }
     public decimal Amount { get; set; }
     public OfferStatus Status { get; set; }
 }

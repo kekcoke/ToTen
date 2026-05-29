@@ -1,0 +1,26 @@
+
+## Overview
+This document outlines the overarching specification across all project phases. Agents must locate their specific phase/domain, review the assigned to-dos, and execute them strictly within their boundaries.
+
+---
+
+## Phase 2: Vertical Slices Implementation
+**Assigned Agent**: Backend Developer Agent
+**Objective**: Implement the application logic, routing, and asynchronous workflows for the new domains.
+**To-Dos**:
+- [ ] Implement **Home Storage Endpoints**: `CreateLocation`, `MoveItemToLocation`.
+- [x] Implement **Manifest Endpoints**: Generate Moving Manifest, associate boxes.
+- [x] Implement QR Code generation service for Manifest boxes (save to Azure Blob Storage via Azurite emulator with `BlobServiceClient` DI wiring).
+- [x] Implement **Marketplace Endpoints**: Create listing, submit offer.
+- [x] Implement Advanced Search endpoint supporting Geolocation (distance/radius), Text Search, and faceted filtering/sorting.
+- [x] Modify Marketplace `Transaction` logic to write immutable records to `ItemLineage` and publish `ItemTransferredEvent`.
+- [x] Define and implement Message Contracts for Azure Service Bus/Rebus (e.g., `ItemMovedEvent`, `ManifestCreatedEvent`).
+- [x] Implement Background Worker Consumers for the newly created events.
+- [x] Implement a `Communications` vertical slice with an ASP.NET Core SignalR `ChatHub`.
+- [x] Implement Worker consumers for `SendNotificationEvent` (Mocked for Phase 2).
+- [x] Abstract Keycloak/Identity logic behind a generic `IIdentityManager` interface (Pluggable IAM).
+- [x] Implement ASP.NET Core Authorization Policies corresponding to the 6 roles.
+- [x] Implement `IAuthorizationHandler` for Resource-Based Authorization (verifying data ownership).
+- [x] Implement a Users/Roles vertical slice for Administrators to manage user permissions.
+- [x] Implement `Organizations` and `Memberships` vertical slices (Create/Update/Delete groups, Invite/Remove members).
+- [x] Update `IAuthorizationHandler` to support hierarchical access (OwnerId OR active OrganizationMembership).

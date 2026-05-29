@@ -24,4 +24,5 @@ public class OrganizationMembership
     public Organization? Organization { get; set; }
     
     public required string UserId { get; set; } // Keycloak Sub
+    public string Role { get; set; } = "Member";
 }

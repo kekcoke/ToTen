@@ -31,4 +31,7 @@ public class Box
     public required string OwnerId { get; set; }
     public Guid? OrganizationId { get; set; }
     public Organization? Organization { get; set; }
+
+    public Guid? ManifestId { get; set; }
+    public Manifest? Manifest { get; set; }
 }
