@@ -7,6 +7,8 @@ using ToTen.Api.Shared.OpenApi;
 using ToTen.Api.Shared.Authentication;
 using Microsoft.AspNetCore.HttpLogging;
 using ToTen.Api.Features.Categories;
+using ToTen.Api.Features.Storage;
+using ToTen.Api.Shared.Identity;
 using ToTen.Api.Shared.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,8 +25,9 @@ var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
 
 builder.AddToTenNpgsql<ToTenContext>("ToTenDB", credential);
 
-// Add Service Bus messaging
-builder.AddServiceBusMessaging("servicebus");
+// Infrastructure (Identity, SignalR, MassTransit)
+builder.Services.AddToTenIdentityAndSignalR();
+builder.Services.AddToTenMassTransit(builder.Configuration);
 
 // Configure authentication options with validation
 builder.Services.AddOptions<AuthOptions>()
@@ -63,6 +66,8 @@ app.UseCors();
 app.MapDefaultEndpoints();
 app.MapInventoryItems();
 app.MapCategories();
+app.MapStorageEndpoints();
+app.MapToTenHubs();
 
 app.UseHttpLogging();
 
