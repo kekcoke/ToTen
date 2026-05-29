@@ -1,18 +1,32 @@
-using ToTen.Worker;
+using MassTransit;
+using ToTen.Worker.Consumers;
 using ToTen.Worker.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.ConfigureOpenTelemetry();
 
-// Add Azure Service Bus
-builder.AddAzureServiceBusClient("servicebus");
+// Configuration
+builder.Services.Configure<NotificationOptions>(
+    builder.Configuration.GetSection(NotificationOptions.SectionName));
 
-// Register message processor service
-builder.Services.AddSingleton<ItemEventProcessor>();
+// Infrastructure Services
+builder.Services.AddSingleton<INotifier, MockNotifier>();
 
-// Register the background service
-builder.Services.AddHostedService<Worker>();
+// Add MassTransit
+builder.Services.AddMassTransit(x =>
+{
+    // Register all consumers in the assembly
+    x.AddConsumers(typeof(ItemEventsConsumer).Assembly);
+
+    x.UsingAzureServiceBus((context, cfg) =>
+    {
+        cfg.Host(builder.Configuration.GetConnectionString("servicebus"));
+
+        // Use the same topology convention as the API
+        cfg.ConfigureEndpoints(context);
+    });
+});
 
 var host = builder.Build();
 host.Run();
