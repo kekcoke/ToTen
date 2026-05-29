@@ -11,6 +11,7 @@ using ToTen.Api.Features.Manifests;
 using ToTen.Api.Features.Marketplace;
 using ToTen.Api.Features.Organizations;
 using ToTen.Api.Features.Memberships;
+using ToTen.Api.Features.Users;
 using ToTen.Api.Features.Storage;
 using ToTen.Api.Shared.Authorization;
 using ToTen.Api.Shared.Infrastructure;
@@ -81,6 +82,7 @@ app.MapManifestEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapOrganizationEndpoints();
 app.MapMembershipEndpoints();
+app.MapUserEndpoints();
 app.MapToTenHubs();
 
 app.UseHttpLogging();
