@@ -1,5 +1,6 @@
 using ToTen.Api.Features.Marketplace.AcceptOffer;
 using ToTen.Api.Features.Marketplace.CreateListing;
+using ToTen.Api.Features.Marketplace.Search;
 using ToTen.Api.Features.Marketplace.SubmitOffer;
 
 namespace ToTen.Api.Features.Marketplace;
@@ -11,5 +12,6 @@ public static class MarketplaceEndpoints
         app.MapCreateListing();
         app.MapSubmitOffer();
         app.MapAcceptOffer();
+        app.MapSearchListings();
     }
 }
