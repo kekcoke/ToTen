@@ -1,3 +1,4 @@
+using ToTen.Api.Features.Marketplace.AcceptOffer;
 using ToTen.Api.Features.Marketplace.CreateListing;
 using ToTen.Api.Features.Marketplace.SubmitOffer;
 
@@ -9,5 +10,6 @@ public static class MarketplaceEndpoints
     {
         app.MapCreateListing();
         app.MapSubmitOffer();
+        app.MapAcceptOffer();
     }
 }

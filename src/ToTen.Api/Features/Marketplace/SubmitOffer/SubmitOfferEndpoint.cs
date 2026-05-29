@@ -28,6 +28,7 @@ public static class SubmitOfferEndpoint
             {
                 Id = Guid.NewGuid(),
                 ListingId = listingId,
+                BuyerId = user.Id.ToString(),
                 Amount = request.Amount,
                 Status = OfferStatus.Pending
             };
