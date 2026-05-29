@@ -6,6 +6,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var postgres = builder.AddAzurePostgresFlexibleServer("postgres")
                     .RunAsContainer(postgres =>
                     {
+                        postgres.WithImage("postgis/postgis")
+                                .WithImageTag("17-3.4");
                         postgres.WithDataVolume();
                         postgres.WithPgAdmin(pgAdmin =>
                         {
