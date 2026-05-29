@@ -18,7 +18,7 @@ builder.Services.AddRebus(
     configure => configure
         .Transport(t => t.UseAzureServiceBus(
             builder.Configuration.GetConnectionString("servicebus"),
-            "ToTen.Worker"))
+            "ToTen-Worker"))
 );
 
 // Register message handlers
