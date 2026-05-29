@@ -9,7 +9,10 @@ using Microsoft.AspNetCore.HttpLogging;
 using ToTen.Api.Features.Categories;
 using ToTen.Api.Features.Manifests;
 using ToTen.Api.Features.Marketplace;
+using ToTen.Api.Features.Organizations;
+using ToTen.Api.Features.Memberships;
 using ToTen.Api.Features.Storage;
+using ToTen.Api.Shared.Authorization;
 using ToTen.Api.Shared.Infrastructure;
 using ToTen.Api.Shared.Identity;
 using ToTen.Api.Shared.Messaging;
@@ -45,7 +48,7 @@ builder.Services.ConfigureOptions<JwtBearerOptionsSetup>();
 builder.Services.AddAuthentication()
                 .AddJwtBearer();
 
-builder.Services.AddAuthorizationBuilder();
+builder.Services.AddToTenAuthorization();
 
 builder.Services.AddHttpLogging(options =>
 {
@@ -76,6 +79,8 @@ app.MapCategories();
 app.MapStorageEndpoints();
 app.MapManifestEndpoints();
 app.MapMarketplaceEndpoints();
+app.MapOrganizationEndpoints();
+app.MapMembershipEndpoints();
 app.MapToTenHubs();
 
 app.UseHttpLogging();
