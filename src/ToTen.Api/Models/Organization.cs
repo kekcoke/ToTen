@@ -13,6 +13,8 @@ public class Organization
     public DateTimeOffset? DateDeleted { get; set; }
 
     public ICollection<OrganizationMembership> Memberships { get; set; } = [];
+    public ICollection<InventoryItem> InventoryItems { get; set; } = [];
+    public ICollection<Location> Locations { get; set; } = [];
 }
 
 public class OrganizationMembership
