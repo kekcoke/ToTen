@@ -37,7 +37,9 @@ var blobs = storage.AddBlobs("blobs");
 var keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true, value: "admin");
 int? keycloakPort = builder.ExecutionContext.IsRunMode ? 8080 : null;
 var keycloak = builder.AddKeycloak("keycloak", adminPassword: keycloakPassword, port: keycloakPort)
-                      .WithLifetime(ContainerLifetime.Persistent);
+                      .WithLifetime(ContainerLifetime.Session)
+                      .WithRealmImport("./realms")
+                      .WithArgs("--verbose");
 
 var keycloakAuthority = ReferenceExpression.Create(
     $"{keycloak.GetEndpoint("http").Property(EndpointProperty.Url)}/realms/ToTen"
@@ -77,11 +79,6 @@ var worker = builder.AddProject<ToTen_Worker>("ToTen-worker")
                     .WaitFor(serviceBus)
                     .WaitFor(blobs);
 
-if (builder.ExecutionContext.IsRunMode)
-{
-    keycloak.WithDataVolume()
-            .WithRealmImport("./realms");
-}
 
 if (builder.ExecutionContext.IsPublishMode)
 {
