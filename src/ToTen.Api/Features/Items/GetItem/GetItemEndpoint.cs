@@ -1,7 +1,6 @@
 using ToTen.Api.Data;
-using ToTen.Api.Features.Items.Constants;
 using ToTen.Api.Models;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ToTen.Api.Features.Items.GetItem;
 
@@ -9,27 +8,23 @@ public static class GetItemEndpoint
 {
     public static void MapGetItem(this IEndpointRouteBuilder app)
     {
-        // GET /items/122233-434d-43434....
-        app.MapGet("/{id}", async (
-            Guid id,
-            ToTenContext dbContext,
-            ILogger<Program> logger) =>
+        app.MapGet("/items/{id}", async (Guid id, ToTenContext context) =>
         {
-            Item? item = await dbContext.Items.FindAsync(id);
+            var item = await context.InventoryItems
+                .FirstOrDefaultAsync(i => i.Id == id);
 
-            return item is null ? Results.NotFound() : Results.Ok(
-                                new ItemDetailsDto(
-                                    item.Id,
-                                    item.Name,
-                                    item.CategoryId,
-                                    item.Price,
-                                    item.ReleaseDate,
-                                    item.Description,
-                                    item.LastUpdatedBy
-                                ));
+            return item is not null
+                ? Results.Ok(new GetItemResponse(
+                    item.Id,
+                    item.Name,
+                    item.CategoryId,
+                    item.Description,
+                    item.LastUpdatedBy))
+                : Results.NotFound();
         })
-        .WithName(EndpointNames.GetItem)
-        .Produces<ItemDetailsDto>()
+        .WithName("GetItem")
+        .WithTags("Items")
+        .Produces<GetItemResponse>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound);
     }
 }

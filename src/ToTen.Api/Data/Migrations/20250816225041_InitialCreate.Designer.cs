@@ -75,7 +75,7 @@ namespace ToTen.Api.Data.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Items");
+                    b.ToTable("InventoryItems");
                 });
 
             modelBuilder.Entity("ToTen.Api.Models.Item", b =>

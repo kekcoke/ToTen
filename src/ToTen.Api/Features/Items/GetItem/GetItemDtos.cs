@@ -1,10 +1,8 @@
 namespace ToTen.Api.Features.Items.GetItem;
 
-public record ItemDetailsDto(
+public record GetItemResponse(
     Guid Id,
     string Name,
     Guid CategoryId,
-    decimal Price,
-    DateOnly ReleaseDate,
     string Description,
     string LastUpdatedBy);

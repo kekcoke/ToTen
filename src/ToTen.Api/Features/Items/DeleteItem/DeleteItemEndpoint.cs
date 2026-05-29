@@ -28,7 +28,7 @@ public static class DeleteItemEndpoint
             }
 
             // Delete the item using the efficient ExecuteDeleteAsync
-            await dbContext.Items
+            await dbContext.InventoryItems
                      .Where(item => item.Id == id)
                      .ExecuteDeleteAsync();
 

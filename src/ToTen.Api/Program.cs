@@ -61,7 +61,7 @@ var app = builder.Build();
 app.UseCors();
 
 app.MapDefaultEndpoints();
-app.MapItems();
+app.MapInventoryItems();
 app.MapCategories();
 
 app.UseHttpLogging();

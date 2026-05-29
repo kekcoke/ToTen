@@ -24,7 +24,7 @@ namespace ToTen.Api.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Items",
+                name: "InventoryItems",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -37,9 +37,9 @@ namespace ToTen.Api.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Items", x => x.Id);
+                    table.PrimaryKey("PK_InventoryItems", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Items_Categories_CategoryId",
+                        name: "FK_InventoryItems_Categories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "Categories",
                         principalColumn: "Id",
@@ -47,8 +47,8 @@ namespace ToTen.Api.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Items_CategoryId",
-                table: "Items",
+                name: "IX_InventoryItems_CategoryId",
+                table: "InventoryItems",
                 column: "CategoryId");
         }
 
@@ -56,7 +56,7 @@ namespace ToTen.Api.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Items");
+                name: "InventoryItems");
 
             migrationBuilder.DropTable(
                 name: "Categories");
