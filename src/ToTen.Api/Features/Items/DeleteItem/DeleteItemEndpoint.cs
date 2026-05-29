@@ -16,7 +16,7 @@ public static class DeleteItemEndpoint
         app.MapDelete("/{id}", async (
             Guid id,
             ToTenContext dbContext,
-            IEventPublisher eventPublisher,
+            [FromServices] IEventPublisher eventPublisher,
             ILogger<Program> logger,
             ClaimsPrincipal user) =>
         {
