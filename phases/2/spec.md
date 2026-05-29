@@ -11,9 +11,9 @@ This document outlines the overarching specification across all project phases. 
 - [ ] Implement **Home Storage Endpoints**: `CreateLocation`, `MoveItemToLocation`.
 - [x] Implement **Manifest Endpoints**: Generate Moving Manifest, associate boxes.
 - [x] Implement QR Code generation service for Manifest boxes (save to Azure Blob Storage).
-- [ ] Implement **Marketplace Endpoints**: Create listing, submit offer.
+- [x] Implement **Marketplace Endpoints**: Create listing, submit offer.
 - [ ] Implement Advanced Search endpoint supporting Geolocation (distance/radius), Text Search, and faceted filtering/sorting.
-- [ ] Modify Marketplace `Transaction` logic to write immutable records to `ItemLineage` and publish `ItemTransferredEvent`.
+- [x] Modify Marketplace `Transaction` logic to write immutable records to `ItemLineage` and publish `ItemTransferredEvent`.
 - [x] Define and implement Message Contracts for Azure Service Bus/MassTransit (e.g., `ItemMovedEvent`, `ManifestCreatedEvent`).
 - [ ] Implement Background Worker Consumers for the newly created events.
 - [x] Implement a `Communications` vertical slice with an ASP.NET Core SignalR `ChatHub`.
