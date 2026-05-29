@@ -18,7 +18,7 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 - [x] QR Code generation service stores assets in Azure Blob Storage.
 - [x] Pub/Sub events are confirmed to be publishing to the local emulator/queue (via MassTransit Topology).
 - [x] Authentication works via the generic `IIdentityManager` without hard dependencies on Keycloak-specific libraries in the core API.
-- [ ] API endpoints correctly enforce `[Authorize]` role policies.
-- [ ] Resource authorization correctly blocks cross-user data access (e.g., User A accessing User B's inventory).
-- [ ] Group CRUD and membership invitation workflows execute successfully.
-- [ ] Resource authorization correctly permits access to resources owned by an `OrganizationId` if the user is an active member.
+- [x] API endpoints correctly enforce `[Authorize]` role policies.
+- [x] Resource authorization correctly blocks cross-user data access (e.g., User A accessing User B's inventory).
+- [x] Group CRUD and membership invitation workflows execute successfully.
+- [x] Resource authorization correctly permits access to resources owned by an `OrganizationId` if the user is an active member.

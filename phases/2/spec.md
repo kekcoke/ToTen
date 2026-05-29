@@ -19,8 +19,8 @@ This document outlines the overarching specification across all project phases. 
 - [x] Implement a `Communications` vertical slice with an ASP.NET Core SignalR `ChatHub`.
 - [x] Implement Worker consumers for `SendNotificationEvent` (Mocked for Phase 2).
 - [x] Abstract Keycloak/Identity logic behind a generic `IIdentityManager` interface (Pluggable IAM).
-- [ ] Implement ASP.NET Core Authorization Policies corresponding to the 6 roles.
-- [ ] Implement `IAuthorizationHandler` for Resource-Based Authorization (verifying data ownership).
-- [ ] Implement a Users/Roles vertical slice for Administrators to manage user permissions.
-- [ ] Implement `Organizations` and `Memberships` vertical slices (Create/Update/Delete groups, Invite/Remove members).
-- [ ] Update `IAuthorizationHandler` to support hierarchical access (OwnerId OR active OrganizationMembership).
+- [x] Implement ASP.NET Core Authorization Policies corresponding to the 6 roles.
+- [x] Implement `IAuthorizationHandler` for Resource-Based Authorization (verifying data ownership).
+- [x] Implement a Users/Roles vertical slice for Administrators to manage user permissions.
+- [x] Implement `Organizations` and `Memberships` vertical slices (Create/Update/Delete groups, Invite/Remove members).
+- [x] Update `IAuthorizationHandler` to support hierarchical access (OwnerId OR active OrganizationMembership).
