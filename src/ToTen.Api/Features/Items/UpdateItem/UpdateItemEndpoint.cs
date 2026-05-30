@@ -8,7 +8,7 @@ public static class UpdateItemEndpoint
 {
     public static void MapUpdateItem(this IEndpointRouteBuilder app)
     {
-        app.MapPut("/items/{id}", async (Guid id, UpdateItemRequest request, ToTenContext context) =>
+        app.MapPut("/{id}", async (Guid id, UpdateItemRequest request, ToTenContext context) =>
         {
             var item = await context.InventoryItems.FindAsync(id);
 

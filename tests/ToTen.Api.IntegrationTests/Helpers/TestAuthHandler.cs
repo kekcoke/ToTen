@@ -20,19 +20,30 @@ public class TestAuthHandler(
             return Task.FromResult(AuthenticateResult.Fail("Authentication failed"));
         }
 
-        List<Claim> claims = [];
+        List<Claim> claims =
+        [
+            new Claim(ClaimTypes.NameIdentifier, Options.UserId.ToString()),
+        ];
 
         if (!string.IsNullOrWhiteSpace(Options.Email))
         {
             claims.Add(new Claim(JwtRegisteredClaimNames.Email, Options.Email));
         }
 
+        foreach (var role in Options.Roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        if (Options.OrganizationId.HasValue)
+        {
+            claims.Add(new Claim("organization_id", Options.OrganizationId.Value.ToString()));
+        }
+
         var identity = new ClaimsIdentity(claims, "Test");
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, "TestScheme");
 
-        var result = AuthenticateResult.Success(ticket);
-
-        return Task.FromResult(result);
+        return Task.FromResult(AuthenticateResult.Success(ticket));
     }
 }

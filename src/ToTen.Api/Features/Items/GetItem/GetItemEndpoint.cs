@@ -8,7 +8,7 @@ public static class GetItemEndpoint
 {
     public static void MapGetItem(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/items/{id}", async (Guid id, ToTenContext context) =>
+        app.MapGet("/{id}", async (Guid id, ToTenContext context) =>
         {
             var item = await context.InventoryItems
                 .FirstOrDefaultAsync(i => i.Id == id);
