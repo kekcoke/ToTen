@@ -231,7 +231,68 @@ jobs:
           cmd_options: '-a'
           fail_action: false
 
-  # ── 6. NuGet — pack and publish ToTen.Contracts to GitHub Packages ─────────────
+  # ── 6. Robot Framework — acceptance tests against live ACA endpoint ─────────────
+  robot-tests:
+    runs-on: ubuntu-latest
+    needs: [deploy, terraform]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Robot Framework
+        run: pip install -r tests/ToTen.AcceptanceTests/requirements.txt
+
+      - name: Run Robot Framework tests
+        run: |
+          robot \
+            --outputdir test-results/robot \
+            --variable BASE_URL:https://${{ needs.terraform.outputs.api_fqdn }} \
+            tests/ToTen.AcceptanceTests/
+        env:
+          API_KEY: ${{ secrets.ROBOT_API_KEY }}
+        continue-on-error: true
+
+      - name: Upload Robot Framework results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-framework-results
+          path: test-results/robot/
+
+  # ── 7. Performance — JMeter baseline load test artifact ──────────────────────────
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: [deploy, terraform]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download JMeter
+        run: |
+          wget -q https://downloads.apache.org/jmeter/binaries/apache-jmeter-5.6.3.tgz
+          tar -xzf apache-jmeter-5.6.3.tgz
+
+      - name: Run baseline load test
+        run: |
+          apache-jmeter-5.6.3/bin/jmeter -n \
+            -t tests/performance/move-item-baseline.jmx \
+            -Jbase_url=${{ needs.terraform.outputs.api_fqdn }} \
+            -l jmeter-results.jtl \
+            -e -o jmeter-report/
+        continue-on-error: true
+
+      - name: Upload JMeter report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-baseline-report
+          path: jmeter-report/
+
+  # ── 8. NuGet — pack and publish ToTen.Contracts to GitHub Packages ─────────────
   nuget-publish:
     runs-on: ubuntu-latest
     needs: lint-test
