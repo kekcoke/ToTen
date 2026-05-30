@@ -384,14 +384,14 @@ In the GitHub repository: **Settings → Secrets and variables → Actions**
 | `TF_VAR_KEYCLOAK_ADMIN_PASSWORD` | Same complexity requirements |
 | `ROBOT_API_KEY` | Any non-empty string for now; swap for a real Keycloak-issued API key after first deploy |
 
-- [ ] All four variables set
-- [ ] All three secrets set
+- [X] All four variables set
+- [X] All three secrets set ()
 
 ### E — Enable GitHub Advanced Security
 
 **Settings → Code security → GitHub Advanced Security → Enable**
 
-- [ ] GitHub Advanced Security enabled (required for CodeQL results to surface)
+- [X] GitHub Advanced Security enabled (required for CodeQL results to surface) (looks enabled)
 
 ### F — Verify Keycloak Docker image builds locally
 
@@ -403,8 +403,20 @@ docker build -f docker/keycloak/Dockerfile -t toten-keycloak:local .
 docker run --rm toten-keycloak:local ls /opt/keycloak/data/import/
 ```
 
-- [ ] Image builds without error
-- [ ] `ToTen-realm.json` appears in `/opt/keycloak/data/import/` inside the image
+If above doesn't work, it's because of modern Keycloak Docker images are set with a hardcoded ENTRYPOINT that
+points straight to the management script (/opt/keycloak/bin/kc.sh). Command translation comes 
+`/opt/keycloak/bin/kc.sh ls /opt/keycloak/data/import/` which ls is not translated. It then suggests `kc.tools`. 
+Run commands below:
+
+```bash
+docker run --rm \
+  --entrypoint /bin/sh \
+  toten-keycloak:local \
+  -c "ls -la /opt/keycloak/data/import/"
+```
+
+- [X] Image builds without error
+- [X] `ToTen-realm.json` appears in `/opt/keycloak/data/import/` inside the image
 
 ### H — Create `toten-platform` Entra ID app registration
 
