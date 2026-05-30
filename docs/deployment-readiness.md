@@ -193,9 +193,9 @@ Each row must be complete before the next begins.
 
 ### A — Local tooling
 
-- [ ] Azure CLI installed and authenticated: `az login`
-- [ ] Terraform CLI ≥ 1.5 installed: `terraform version`
-- [ ] Docker daemon running (needed for Keycloak image verification)
+- [X] Azure CLI installed and authenticated: `az login`
+- [X] Terraform CLI ≥ 1.5 installed: `terraform version`
+- [X] Docker daemon running (needed for Keycloak image verification)
 
 ### B — Bootstrap Terraform state backend (run once)
 
@@ -225,11 +225,20 @@ echo "TENANT_ID:       $TENANT_ID"
 > **Keep this terminal open.** `$SUBSCRIPTION_ID` and `$TENANT_ID` are referenced in B.4
 > and Section C. If you open a new shell, re-run `az account show` to re-export them.
 
-- [ ] Correct project subscription is active (`az account show` shows expected subscription)
-- [ ] `$SUBSCRIPTION_ID` captured
-- [ ] `$TENANT_ID` captured
+- [X] Correct project subscription is active (`az account show` shows expected subscription)
+- [X] `$SUBSCRIPTION_ID` captured
+- [X] `$TENANT_ID` captured
 
 #### B.2 — Create resource group and storage account
+
+
+```bash
+# Register the provider explicitly pointing to your variable
+az provider register --namespace Microsoft.Storage --subscription $SUBSCRIPTION_ID
+
+# (Optional) Wait 30 seconds and check progress until it says "Registered"
+az provider show --namespace Microsoft.Storage --subscription $SUBSCRIPTION_ID --query "registrationState" --output table
+```
 
 ```bash
 az group create \
@@ -250,8 +259,8 @@ az storage account create \
 > If the name is taken, choose an alternative and update `storage_account_name` in
 > `terraform/main.tf` line 17.
 
-- [ ] Resource group `toten-tfstate-rg` created in `canadacentral`
-- [ ] Storage account `totentfstate` created (`Standard_LRS`, public blob access off)
+- [X] Resource group `toten-tfstate-rg` created in `canadacentral`
+- [X] Storage account `totentfstate` created (`Standard_LRS`, public blob access off)
 
 #### B.3 — Create tfstate blob container
 
@@ -262,7 +271,7 @@ az storage container create \
   --subscription $SUBSCRIPTION_ID
 ```
 
-- [ ] Container `tfstate-prod` created inside `totentfstate`
+- [X] Container `tfstate-prod` created inside `totentfstate`
 
 #### B.4 — Grant Storage Blob Data Contributor to CI/CD service principal
 
