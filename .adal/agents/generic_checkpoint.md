@@ -5,18 +5,6 @@ Agents MUST validate all items in their assigned phase checklist before declarin
 
 ---
 
-
-## Phase 3: Infrastructure as Code (Architect / DevSecOps Agent)
-**Validation Checklist**:
-- [ ] `terraform fmt` has been run and formatting is correct.
-- [ ] `terraform validate` reports no syntax or configuration errors.
-- [ ] `terraform plan` executes successfully and generates the expected infrastructure delta without state lock errors.
-- [ ] Environment variables and secrets are correctly abstracted (no hardcoded credentials).
-- [ ] PostgreSQL Terraform module explicitly enables PostGIS.
-- [ ] Azure SignalR Service and communication provider secrets are present in the Terraform plan.
-
----
-
 ## Phase 4: DevSecOps & CI/CD Integration (DevSecOps Agent)
 **Validation Checklist**:
 - [ ] YAML syntax is valid and passes CI linting.

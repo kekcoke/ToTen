@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ToTen.Api.Features.Communications;
 
@@ -6,10 +7,14 @@ namespace ToTen.Api.Shared.Identity;
 
 public static class IdentityAndSignalRConfiguration
 {
-    public static IServiceCollection AddToTenIdentityAndSignalR(this IServiceCollection services)
+    public static IServiceCollection AddToTenIdentityAndSignalR(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IIdentityManager, KeycloakIdentityManager>();
-        services.AddSignalR();
+
+        var signalRConnectionString = configuration["SignalR:ConnectionString"];
+        var signalR = services.AddSignalR();
+        if (!string.IsNullOrWhiteSpace(signalRConnectionString))
+            signalR.AddAzureSignalR(signalRConnectionString);
 
         services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
         {

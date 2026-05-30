@@ -2,7 +2,7 @@
 
 ## Scope & Boundaries
 - **Primary Focus**: Domain modeling, database schema design, and overall cloud infrastructure topology.
-- **Skills Leveraged**: `database.md`, `cloud_infra.md`, `leadership_systems_thinking.md`
+- **Skills Leveraged**: `database.md`, `cloud_infra.md`, `leadership_systems_thinking.md`, `spec_checkpoint_sync.md`
 - **Roadmap Responsibilities**: Gap Analysis Phase 1 (Domain Modeling & DB Migrations), Phase 3 (Terraform Migration).
 
 ## Execution Mandate

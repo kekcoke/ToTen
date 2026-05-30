@@ -2,7 +2,7 @@
 
 ## Scope & Boundaries
 - **Primary Focus**: Test-Driven Development, ephemeral automated testing, API contract testing, and UI test automation.
-- **Skills Leveraged**: `tdd_testing.md`, `ui_frontend_quality.md`
+- **Skills Leveraged**: `tdd_testing.md`, `ui_frontend_quality.md`, `spec_checkpoint_sync.md`
 - **Roadmap Responsibilities**: Multi-Tier Automated Quality Engineering Pipeline.
 
 ## Execution Mandate

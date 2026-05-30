@@ -58,6 +58,18 @@ var keycloakAuthority = ReferenceExpression.Create(
     $"{keycloak.GetEndpoint("http").Property(EndpointProperty.Url)}/realms/ToTen"
 );
 
+// Key Vault emulator (local only) — production Key Vault is provisioned by Terraform.
+// Uses ghcr.io/james-gould/azure-keyvault-emulator; trust the self-signed cert in dev via
+// ASPNETCORE_Kestrel__Certificates__Default__* or set AZURE_KEYVAULT_DISABLE_CHALLENGE_RESOURCE_VERIFICATION=true.
+IResourceBuilder<ContainerResource>? keyVaultEmulator = null;
+if (builder.ExecutionContext.IsRunMode)
+{
+    keyVaultEmulator = builder.AddContainer("keyvault-emulator", "ghcr.io/james-gould/azure-keyvault-emulator")
+        .WithImageTag("latest")
+        .WithLifetime(ContainerLifetime.Persistent)
+        .WithHttpsEndpoint(port: 4997, targetPort: 4997, name: "vault");
+}
+
 #pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 var api = builder.AddProject<ToTen_Api>("ToTen-api")
             .WithReference(ToTenDb)
@@ -92,31 +104,11 @@ var worker = builder.AddProject<ToTen_Worker>("ToTen-worker")
                     .WaitFor(serviceBus)
                     .WaitFor(blobs);
 
-
-if (builder.ExecutionContext.IsPublishMode)
+if (keyVaultEmulator is not null)
 {
-    var postgresUser = builder.AddParameter("PostgresUser", value: "postgres");
-    var postgresPassword = builder.AddParameter("PostgresPassword", secret: true);
-    postgres.WithPasswordAuthentication(userName: postgresUser, password: postgresPassword);
-
-    var keycloakDb = postgres.AddDatabase("keycloakDB", "keycloak");
-
-    var keycloakDbUrl = ReferenceExpression.Create(
-        $"jdbc:postgresql://{postgres.Resource.HostName}/{keycloakDb.Resource.DatabaseName}"
-    );
-
-    keycloak.WithEnvironment("KC_HTTP_ENABLED", "true")
-            .WithEnvironment("KC_PROXY_HEADERS", "xforwarded")
-            .WithEnvironment("KC_HOSTNAME_STRICT", "false")
-            .WithEnvironment("KC_DB", "postgres")
-            .WithEnvironment("KC_DB_URL", keycloakDbUrl)
-            .WithEnvironment("KC_DB_USERNAME", postgresUser)
-            .WithEnvironment("KC_DB_PASSWORD", postgresPassword)
-            .WithEndpoint("http", e => e.IsExternal = true);
-
-    var insights = builder.AddAzureApplicationInsights("app-insights");
-    api.WithReference(insights);
-    worker.WithReference(insights);
+    var kvUrl = keyVaultEmulator.GetEndpoint("vault").Property(EndpointProperty.Url);
+    api.WithEnvironment("KeyVault__Uri", kvUrl);
+    worker.WithEnvironment("KeyVault__Uri", kvUrl);
 }
 
 builder.AddAzureContainerAppEnvironment("cae");
