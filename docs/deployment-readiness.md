@@ -295,7 +295,7 @@ az role assignment create \
   --scope $TFSTATE_ID
 ```
 
-- [ ] Storage Blob Data Contributor granted to `toten-github-actions` SP on `totentfstate`
+- [X] Storage Blob Data Contributor granted to `toten-github-actions` SP on `totentfstate`
   _(complete after Section C steps 1–2; return here before C step 3)_
 
 ### C — Create Entra app registration with OIDC federation
@@ -355,13 +355,13 @@ echo "AZURE_SUBSCRIPTION_ID: $SUBSCRIPTION_ID"
 > **Note**: Replace `kekcoke/ToTen` with your actual GitHub `owner/repo` slug
 > in both federated credential subjects if it differs.
 
-- [ ] App registration `toten-github-actions` created
-- [ ] Service principal created (complete Section B.4 before continuing)
-- [ ] Service principal has Contributor role on subscription
-- [ ] Service principal has Key Vault Administrator role on subscription
-- [ ] Federated credential for `refs/heads/main` added
-- [ ] Federated credential for `pull_request` added
-- [ ] `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` values recorded
+- [X] App registration `toten-github-actions` created
+- [X] Service principal created (complete Section B.4 before continuing)
+- [X] Service principal has Contributor role on subscription
+- [X] Service principal has Key Vault Administrator role on subscription
+- [X] Federated credential for `refs/heads/main` added
+- [X] Federated credential for `pull_request` added
+- [X] `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` values recorded
 
 ### D — Configure GitHub Actions variables and secrets
 
