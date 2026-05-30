@@ -7,7 +7,7 @@ public static class CreateItemEndpoint
 {
     public static void MapCreateItem(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/items", async (CreateItemRequest request, ToTenContext context) =>
+        app.MapPost("/", async (CreateItemRequest request, ToTenContext context) =>
         {
             var item = new InventoryItem
             {
