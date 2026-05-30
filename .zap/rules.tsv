@@ -1,0 +1,4 @@
+# ZAP rule suppressions — add rows to silence known false positives.
+# Format: <rule-id>\t<action>\t<description>
+# Actions: IGNORE WARN FAIL
+# Example: 10016\tIGNORE\tWeb Browser XSS Protection header not required

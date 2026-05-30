@@ -133,3 +133,27 @@ module "keycloak" {
   postgres_admin_password = var.postgres_admin_password
   keycloak_admin_password = var.keycloak_admin_password
 }
+
+# --- Application services (Api + Worker — depends on all other modules) ---
+
+module "apps" {
+  source                         = "./modules/apps"
+  prefix                         = local.prefix
+  resource_group_name            = azurerm_resource_group.main.name
+  aca_environment_id             = module.container_apps.environment_id
+  managed_identity_id            = module.container_apps.managed_identity_id
+  managed_identity_client_id     = module.container_apps.managed_identity_client_id
+  acr_login_server               = module.registry.login_server
+  acr_admin_username             = module.registry.admin_username
+  acr_admin_password             = module.registry.admin_password
+  api_image                      = var.api_image
+  worker_image                   = var.worker_image
+  key_vault_uri                  = module.key_vault.vault_uri
+  keycloak_authority_url         = module.keycloak.authority_url
+  app_insights_connection_string = module.observability.connection_string
+  servicebus_connection_string   = module.service_bus.connection_string
+  signalr_connection_string      = module.signalr.connection_string
+  storage_connection_string      = module.storage.primary_connection_string
+  postgres_fqdn                  = module.postgres.fqdn
+  postgres_admin_password        = var.postgres_admin_password
+}

@@ -34,3 +34,15 @@ output "app_insights_connection_string" {
 output "postgres_fqdn" {
   value = module.postgres.fqdn
 }
+
+output "api_name" {
+  value = module.apps.api_name
+}
+
+output "worker_name" {
+  value = module.apps.worker_name
+}
+
+output "api_fqdn" {
+  value = module.apps.api_fqdn
+}
