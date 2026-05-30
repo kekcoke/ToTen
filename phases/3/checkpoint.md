@@ -23,4 +23,4 @@
 - [ ] Key Vault emulator starts cleanly in Aspire dashboard and `KeyVault__Uri` appears in Api and Worker process environment. *(Verify by running `dotnet run --project src/ToTen.AppHost` and checking Aspire dashboard.)*
 
 ### Handoff Gate
-- [ ] `IsPublishMode` block removed from `AppHost.cs`; Terraform owns all cloud resource provisioning. This item must be completed before Phase 4 begins.
+- [x] `IsPublishMode` block removed from `AppHost.cs`; Terraform owns all cloud resource provisioning. This item must be completed before Phase 4 begins.

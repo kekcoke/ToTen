@@ -25,5 +25,5 @@
 - [x] Add `KeyVault.Uri` and `SignalR.ConnectionString` config sections to `appsettings.json` (Api); `KeyVault.Uri` set to `https://localhost:4997` in `appsettings.Development.json` for both Api and Worker.
 - [x] Add Terraform and tooling exclusions to `.gitignore` (state files, `*.auto.tfvars`, `.terraform/`) and `.dockerignore` (`terraform/`, `docs/`, `.adal/`, `CHANGELOG/`).
 - [x] Write companion reference docs: `phase-3-multi-env-notes.md` (tfvars-per-env strategy) and `phase-3-vnet-private-endpoints.md` (full VNet + private endpoint design for future hardening).
-- [ ] Remove `IsPublishMode` block from `AppHost.cs`; Terraform owns all cloud resource provisioning. Prerequisite: Terraform modules validated against a real Azure subscription (`terraform validate` + `terraform plan` passing).
+- [x] Remove `IsPublishMode` block from `AppHost.cs`; Terraform owns all cloud resource provisioning. Prerequisite: Terraform modules validated against a real Azure subscription (`terraform validate` + `terraform plan` passing).
 - [ ] Run `terraform init` against the bootstrap state backend and `terraform validate`; resolve any provider-level errors before Phase 4 pipeline integration.

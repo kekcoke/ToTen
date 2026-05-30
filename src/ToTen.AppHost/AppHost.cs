@@ -111,37 +111,6 @@ if (keyVaultEmulator is not null)
     worker.WithEnvironment("KeyVault__Uri", kvUrl);
 }
 
-if (builder.ExecutionContext.IsPublishMode)
-{
-    var postgresUser = builder.AddParameter("PostgresUser", value: "postgres");
-    var postgresPassword = builder.AddParameter("PostgresPassword", secret: true);
-    postgres.WithPasswordAuthentication(userName: postgresUser, password: postgresPassword);
-
-    var keycloakDb = postgres.AddDatabase("keycloakDB", "keycloak");
-
-    var keycloakDbUrl = ReferenceExpression.Create(
-        $"jdbc:postgresql://{postgres.Resource.HostName}/{keycloakDb.Resource.DatabaseName}"
-    );
-
-    keycloak.WithEnvironment("KC_HTTP_ENABLED", "true")
-            .WithEnvironment("KC_PROXY_HEADERS", "xforwarded")
-            .WithEnvironment("KC_HOSTNAME_STRICT", "false")
-            .WithEnvironment("KC_DB", "postgres")
-            .WithEnvironment("KC_DB_URL", keycloakDbUrl)
-            .WithEnvironment("KC_DB_USERNAME", postgresUser)
-            .WithEnvironment("KC_DB_PASSWORD", postgresPassword)
-            .WithEndpoint("http", e => e.IsExternal = true);
-
-    var insights = builder.AddAzureApplicationInsights("app-insights");
-    api.WithReference(insights);
-    worker.WithReference(insights);
-
-    // KeyVaultUri is set by Terraform outputs and injected via the CI pipeline.
-    var keyVaultUri = builder.AddParameter("KeyVaultUri");
-    api.WithEnvironment("KeyVault__Uri", keyVaultUri);
-    worker.WithEnvironment("KeyVault__Uri", keyVaultUri);
-}
-
 builder.AddAzureContainerAppEnvironment("cae");
 
 builder.Build().Run();
