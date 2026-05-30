@@ -2,7 +2,7 @@
 
 ## Scope & Boundaries
 - **Primary Focus**: CI/CD pipeline authoring, security scanning, infrastructure deployment, and observability configuration.
-- **Skills Leveraged**: `ci_cd.md`, `security_observability.md`, `cloud_infra.md`
+- **Skills Leveraged**: `ci_cd.md`, `security_observability.md`, `cloud_infra.md`, `spec_checkpoint_sync.md`
 - **Roadmap Responsibilities**: Gap Analysis Phase 4 (CI/CD Pipeline Update) and Secure-by-Design DevSecOps Integration.
 
 ## Execution Mandate

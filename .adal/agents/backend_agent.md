@@ -2,7 +2,7 @@
 
 ## Scope & Boundaries
 - **Primary Focus**: Implementing Vertical Slices, API endpoints, business logic, and Pub/Sub events.
-- **Skills Leveraged**: `api.md`, `ai_automation.md`
+- **Skills Leveraged**: `api.md`, `ai_automation.md`, `spec_checkpoint_sync.md`
 - **Roadmap Responsibilities**: Gap Analysis Phase 2 (Vertical Slices Implementation for Home Storage, Manifests, Marketplace).
 
 ## Execution Mandate
