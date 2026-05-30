@@ -46,3 +46,13 @@ variable "acr_sku" {
   type    = string
   default = "Standard"
 }
+
+variable "api_image" {
+  type        = string
+  description = "Full ACR image URI for ToTen.Api (e.g. totenprodacr.azurecr.io/api/toten-api:sha-abc)."
+}
+
+variable "worker_image" {
+  type        = string
+  description = "Full ACR image URI for ToTen.Worker."
+}

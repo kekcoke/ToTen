@@ -1,64 +1,258 @@
-# Run when commits are pushed to main
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+name: CI/CD
 
-# Set up permissions for deploying with secretless Azure federated credentials
-# https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-portal%2Clinux#set-up-azure-login-with-openid-connect-authentication
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Required for OIDC Azure login, GitHub Packages push, PR comments, and ZAP issue creation.
 permissions:
   id-token: write
   contents: read
+  packages: write
+  pull-requests: write
+  issues: write
 
 jobs:
-  build-test-deploy:
+  # ── 1. Build & test ──────────────────────────────────────────────────────────
+  lint-test:
     runs-on: ubuntu-latest
-
-    env:
-      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
-      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-      AZURE_POSTGRES_USER: ${{ vars.AZURE_POSTGRES_USER }}
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 10.x.x
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
-    - name: Build
-      run: dotnet build --configuration Release
+      - name: Restore
+        run: dotnet restore
 
-    - name: Test
-      run: dotnet test tests/ToTen.Api.IntegrationTests/ToTen.Api.IntegrationTests.csproj --configuration Release --no-build
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
 
-    - name: Install azd
-      uses: Azure/setup-azd@v2
+      - name: Test
+        run: |
+          dotnet test tests/ToTen.Api.IntegrationTests/ToTen.Api.IntegrationTests.csproj \
+            --configuration Release \
+            --no-build \
+            --logger "trx;LogFileName=test-results.trx"
 
-    - name: Log in with Azure (Federated Credentials)
-      run: |
-        azd auth login `
-          --client-id "$Env:AZURE_CLIENT_ID" `
-          --federated-credential-provider "github" `
-          --tenant-id "$Env:AZURE_TENANT_ID"
-      shell: pwsh
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/*.trx"
 
+  # ── 2. Docker build (always) + push to ACR (main only) ───────────────────────
+  docker-build-push:
+    runs-on: ubuntu-latest
+    needs: lint-test
+    outputs:
+      api_image: ${{ steps.tags.outputs.api_image }}
+      worker_image: ${{ steps.tags.outputs.worker_image }}
+      keycloak_image: ${{ steps.tags.outputs.keycloak_image }}
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: Provision Infrastructure
-      run: azd provision --no-prompt
-      env:
-        AZURE_KEYCLOAK_PASSWORD: ${{ secrets.AZURE_KEYCLOAK_PASSWORD }}
-        AZURE_POSTGRES_PASSWORD: ${{ secrets.AZURE_POSTGRES_PASSWORD }}
+      # ACR_NAME must be set as a GitHub Actions variable (e.g. totenprodacr).
+      - name: Compute image tags
+        id: tags
+        run: |
+          ACR_SERVER="${{ vars.ACR_NAME }}.azurecr.io"
+          SHA="${{ github.sha }}"
+          echo "api_image=${ACR_SERVER}/api/toten-api:sha-${SHA}" >> $GITHUB_OUTPUT
+          echo "worker_image=${ACR_SERVER}/worker/toten-worker:sha-${SHA}" >> $GITHUB_OUTPUT
+          echo "keycloak_image=${ACR_SERVER}/keycloak/toten-keycloak:latest" >> $GITHUB_OUTPUT
 
-    - name: Deploy Application
-      run: azd deploy --no-prompt
-      env:
-        AZURE_KEYCLOAK_PASSWORD: ${{ secrets.AZURE_KEYCLOAK_PASSWORD }}
-        AZURE_POSTGRES_PASSWORD: ${{ secrets.AZURE_POSTGRES_PASSWORD }}
+      # Build all images from repo root so ProjectReferences resolve correctly.
+      - name: Build API image
+        run: docker build -t ${{ steps.tags.outputs.api_image }} -f docker/api/Dockerfile .
 
+      - name: Build Worker image
+        run: docker build -t ${{ steps.tags.outputs.worker_image }} -f docker/worker/Dockerfile .
+
+      - name: Build Keycloak image
+        run: docker build -t ${{ steps.tags.outputs.keycloak_image }} -f docker/keycloak/Dockerfile .
+
+      - name: Azure login (OIDC)
+        if: github.ref == 'refs/heads/main'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR
+        if: github.ref == 'refs/heads/main'
+        run: az acr login --name ${{ vars.ACR_NAME }}
+
+      - name: Push API image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker push ${{ steps.tags.outputs.api_image }}
+          docker tag ${{ steps.tags.outputs.api_image }} \
+            ${{ vars.ACR_NAME }}.azurecr.io/api/toten-api:latest
+          docker push ${{ vars.ACR_NAME }}.azurecr.io/api/toten-api:latest
+
+      - name: Push Worker image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker push ${{ steps.tags.outputs.worker_image }}
+          docker tag ${{ steps.tags.outputs.worker_image }} \
+            ${{ vars.ACR_NAME }}.azurecr.io/worker/toten-worker:latest
+          docker push ${{ vars.ACR_NAME }}.azurecr.io/worker/toten-worker:latest
+
+      - name: Push Keycloak image
+        if: github.ref == 'refs/heads/main'
+        run: docker push ${{ steps.tags.outputs.keycloak_image }}
+
+  # ── 3. Terraform plan (PR) / apply (main) ────────────────────────────────────
+  terraform:
+    runs-on: ubuntu-latest
+    needs: docker-build-push
+    outputs:
+      api_name: ${{ steps.tf-outputs.outputs.api_name }}
+      worker_name: ${{ steps.tf-outputs.outputs.worker_name }}
+      resource_group: ${{ steps.tf-outputs.outputs.resource_group }}
+      api_fqdn: ${{ steps.tf-outputs.outputs.api_fqdn }}
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.5"
+
+      - name: Terraform init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform validate
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Terraform plan
+        id: plan
+        working-directory: terraform
+        shell: bash
+        run: |
+          set -o pipefail
+          terraform plan \
+            -var-file="envs/prod.tfvars" \
+            -var="postgres_admin_password=${{ secrets.TF_VAR_POSTGRES_ADMIN_PASSWORD }}" \
+            -var="keycloak_admin_password=${{ secrets.TF_VAR_KEYCLOAK_ADMIN_PASSWORD }}" \
+            -var="api_image=${{ needs.docker-build-push.outputs.api_image }}" \
+            -var="worker_image=${{ needs.docker-build-push.outputs.worker_image }}" \
+            -out=tfplan \
+            -no-color 2>&1 | tee plan_output.txt
+
+      - name: Post plan as PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const raw = fs.readFileSync('terraform/plan_output.txt', 'utf8');
+            const plan = raw.length > 60000 ? raw.slice(0, 60000) + '\n\n…(output truncated)' : raw;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Terraform Plan\n\`\`\`hcl\n${plan}\n\`\`\``
+            });
+
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main'
+        working-directory: terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Capture Terraform outputs
+        if: github.ref == 'refs/heads/main'
+        id: tf-outputs
+        working-directory: terraform
+        run: |
+          echo "api_name=$(terraform output -raw api_name)" >> $GITHUB_OUTPUT
+          echo "worker_name=$(terraform output -raw worker_name)" >> $GITHUB_OUTPUT
+          echo "resource_group=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
+          echo "api_fqdn=$(terraform output -raw api_fqdn)" >> $GITHUB_OUTPUT
+
+  # ── 4. Deploy — update ACA image revisions ───────────────────────────────────
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [terraform, docker-build-push]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update API container app image
+        run: |
+          az containerapp update \
+            --name "${{ needs.terraform.outputs.api_name }}" \
+            --resource-group "${{ needs.terraform.outputs.resource_group }}" \
+            --image "${{ needs.docker-build-push.outputs.api_image }}"
+
+      - name: Update Worker container app image
+        run: |
+          az containerapp update \
+            --name "${{ needs.terraform.outputs.worker_name }}" \
+            --resource-group "${{ needs.terraform.outputs.resource_group }}" \
+            --image "${{ needs.docker-build-push.outputs.worker_image }}"
+
+  # ── 5. DAST — OWASP ZAP baseline against live ACA endpoint ───────────────────
+  dast-scan:
+    runs-on: ubuntu-latest
+    needs: [deploy, terraform]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'https://${{ needs.terraform.outputs.api_fqdn }}'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+          fail_action: false
+
+  # ── 6. NuGet — pack and publish ToTen.Contracts to GitHub Packages ─────────────
+  nuget-publish:
+    runs-on: ubuntu-latest
+    needs: lint-test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Pack ToTen.Contracts
+        run: |
+          dotnet pack src/ToTen.Contracts/ToTen.Contracts.csproj \
+            --configuration Release \
+            -o ./artifacts/nuget \
+            /p:PackageVersion=1.0.${{ github.run_number }}
+
+      - name: Push to GitHub Packages
+        run: |
+          dotnet nuget push ./artifacts/nuget/*.nupkg \
+            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --skip-duplicate
