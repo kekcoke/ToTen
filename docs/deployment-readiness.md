@@ -433,10 +433,12 @@ az ad sp create --id $PLATFORM_APP_ID
 #    Add roles: user, business_owner, internal_user, admin — matching ToTen Keycloak realm roles
 az ad app update --id $PLATFORM_APP_ID \
   --app-roles '[
-    {"allowedMemberTypes":["User"],"description":"Standard user","displayName":"User","id":"00000001-0000-0000-0000-000000000001","isEnabled":true,"value":"user"},
-    {"allowedMemberTypes":["User"],"description":"Business owner","displayName":"BusinessOwner","id":"00000001-0000-0000-0000-000000000002","isEnabled":true,"value":"business_owner"},
-    {"allowedMemberTypes":["User"],"description":"Internal staff","displayName":"InternalUser","id":"00000001-0000-0000-0000-000000000003","isEnabled":true,"value":"internal_user"},
-    {"allowedMemberTypes":["User"],"description":"Realm admin","displayName":"Admin","id":"00000001-0000-0000-0000-000000000004","isEnabled":true,"value":"admin"}
+    {"allowedMemberTypes":["User"],"description":"Standard individual user","displayName":"User","id":"00000001-0000-0000-0000-000000000001","isEnabled":true,"value":"user"},
+    {"allowedMemberTypes":["User"],"description":"Owner of a business organization","displayName":"BusinessOwner","id":"00000001-0000-0000-0000-000000000002","isEnabled":true,"value":"business_owner"},
+    {"allowedMemberTypes":["User"],"description":"ToTen internal staff","displayName":"InternalUser","id":"00000001-0000-0000-0000-000000000003","isEnabled":true,"value":"internal_user"},
+    {"allowedMemberTypes":["User"],"description":"Realm administrator","displayName":"Admin","id":"00000001-0000-0000-0000-000000000004","isEnabled":true,"value":"admin"},
+    {"allowedMemberTypes":["User"],"description":"Global system administrator","displayName":"SuperAdmin","id":"00000001-0000-0000-0000-000000000005","isEnabled":true,"value":"super_admin"},
+    {"allowedMemberTypes":["User","Application"],"description":"Third-party integration service","displayName":"ThirdParty","id":"00000001-0000-0000-0000-000000000006","isEnabled":true,"value":"third_party"}
   ]'
 
 # 4. Add the Keycloak OIDC broker callback as the redirect URI (Web type)
@@ -456,11 +458,24 @@ Then in Keycloak Admin UI (`https://<keycloak_fqdn>/admin/master/console/#/ToTen
 - Client ID: `$PLATFORM_APP_ID`
 - Client Secret: generate one via `az ad app credential reset --id $PLATFORM_APP_ID`
 
+**Add a Role Mapper in Keycloak** so incoming Entra ID role claims are mapped to Keycloak realm roles:
+- In the Identity Provider config, go to **Mappers → Add mapper**
+- Type: **Role Importer**
+- Sync mode: **Inherit** (or Force)
+- The `value` strings in the App Roles above match Keycloak realm role names exactly — no manual name translation is needed.
+
 - [ ] `toten-platform` app registration created
 - [ ] App Roles (user, business_owner, internal_user, admin) defined in manifest
 - [ ] Redirect URI `https://<keycloak_fqdn>/realms/ToTen/broker/<alias>/endpoint` added (Web type)
 - [ ] Keycloak Identity Provider configured pointing at Entra ID OIDC discovery endpoint
 - [ ] `PLATFORM_APP_ID` and `TENANT_ID` recorded for Keycloak IdP config
+- [ ] Role Mapper (Role Importer type) added to the Entra ID Identity Provider in Keycloak
+
+> **No EF Core migration role seeding required.** The six application roles (`user`, `business_owner`,
+> `internal_user`, `admin`, `super_admin`, `third_party`) are Keycloak JWT claims — they live entirely
+> in Keycloak, not in the application database. The only seeded DB data is Categories (5 rows) and
+> demo InventoryItems (3 rows). `OrganizationMemberships.Role` is a separate org-level membership
+> field (default `"Member"`) unrelated to these realm roles.
 
 ---
 
