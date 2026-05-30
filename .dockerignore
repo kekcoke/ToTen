@@ -333,7 +333,7 @@
 # performance testing sandbox
 **/sandbox
 
-# Project-specific: exclude tooling, docs, and IaC from app image build contexts
+# Project-specific: exclude tooling, docs, IaC, and test suites from app image build contexts
 docs/
 .adal/
 CHANGELOG/
@@ -342,6 +342,8 @@ CHANGELOG/
 **/*.tfstate
 **/*.tfstate.backup
 **/.terraform/
+tests/ToTen.AcceptanceTests/
+tests/performance/
 
 # Keycloak realm JSON is intentionally NOT excluded — it is baked into the
 # custom Keycloak Docker image via docker/keycloak/Dockerfile.

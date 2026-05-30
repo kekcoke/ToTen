@@ -361,6 +361,10 @@ autom4te.cache/
 tarballs/
 test-results/
 
+# JMeter artifacts
+jmeter-report/
+jmeter-results.jtl
+
 # Mac bundle stuff
 *.dmg
 *.app
