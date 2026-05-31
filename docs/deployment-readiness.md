@@ -139,8 +139,8 @@ https://<keycloak_fqdn>/realms/ToTen/broker/<alias>/endpoint
 ```
 
 Where:
-- `<keycloak_fqdn>` — the ACA FQDN from `terraform output` (derived from `module.keycloak.fqdn`, pattern: `keycloak.<revision>.<region>.azurecontainerapps.io`)
-- `<alias>` — the alias given to the Entra ID Identity Provider when configured in Keycloak Admin UI (e.g. `entra-id` or `microsoft`)
+- `<keycloak_fqdn>` — the ACA FQDN from `terraform output -raw keycloak_fqdn` after `terraform apply` completes (pattern: `keycloak.<revision>.<region>.azurecontainerapps.io`)
+- `<alias>` — the alias given to the Entra ID Identity Provider when configured in Keycloak Admin UI; use `entra-id` as the canonical alias throughout this project
 
 **URI type to select in Entra ID**: **Web** (server-side callback, not SPA/public client).
 
@@ -415,12 +415,30 @@ docker run --rm \
   -c "ls -la /opt/keycloak/data/import/"
 ```
 
+Confirm the realm file baked into the image matches the current source file (run before every `terraform apply` or ACR push):
+
+```bash
+SOURCE_HASH=$(shasum -a 256 src/ToTen.AppHost/realms/ToTen-realm.json | awk '{print $1}')
+IMAGE_HASH=$(docker run --rm --entrypoint /bin/sh toten-keycloak:local \
+  -c "sha256sum /opt/keycloak/data/import/ToTen-realm.json" | awk '{print $1}')
+
+echo "Source: $SOURCE_HASH"
+echo "Image:  $IMAGE_HASH"
+[ "$SOURCE_HASH" = "$IMAGE_HASH" ] && echo "OK — image is current" || echo "MISMATCH — rebuild image"
+```
+
+If `MISMATCH`, re-run the `docker build` above before continuing.
+
 - [X] Image builds without error
 - [X] `ToTen-realm.json` appears in `/opt/keycloak/data/import/` inside the image
+- [X] Realm hash matches source (`OK — image is current`)
 
 ### H — Create `toten-platform` Entra ID app registration
 
 This is separate from the CI/CD service principal (`toten-github-actions`) and must not be merged with it.
+
+> **Prerequisite for steps 4–5**: `terraform apply` must have completed (Deployment Step 1–2) before
+> the Keycloak FQDN is available. Steps 1–3 can be run at any time after Section C.
 
 ```bash
 # 1. Create the platform app registration
@@ -441,32 +459,37 @@ az ad app update --id $PLATFORM_APP_ID \
     {"allowedMemberTypes":["User","Application"],"description":"Third-party integration service","displayName":"ThirdParty","id":"00000001-0000-0000-0000-000000000006","isEnabled":true,"value":"third_party"}
   ]'
 
-# 4. Add the Keycloak OIDC broker callback as the redirect URI (Web type)
-#    Replace <keycloak_fqdn> with value from: terraform output (strip /realms/ToTen from authority_url)
-#    Replace <alias> with the alias chosen when adding the Identity Provider in Keycloak Admin UI
+# 4. Get the Keycloak FQDN from Terraform state (run AFTER terraform apply completes)
+KEYCLOAK_FQDN=$(cd terraform && terraform output -raw keycloak_fqdn)
+echo "KEYCLOAK_FQDN: $KEYCLOAK_FQDN"
+
+# 5. Add the Keycloak OIDC broker callback as the redirect URI (Web type)
+#    Alias is fixed as "entra-id" — must match the alias set in Keycloak Admin UI below
 az ad app update --id $PLATFORM_APP_ID \
-  --web-redirect-uris "https://<keycloak_fqdn>/realms/ToTen/broker/<alias>/endpoint"
+  --web-redirect-uris "https://${KEYCLOAK_FQDN}/realms/ToTen/broker/entra-id/endpoint"
 
 echo "PLATFORM_APP_ID (client_id for Keycloak IdP config): $PLATFORM_APP_ID"
 echo "TENANT_ID: $(az account show --query tenantId -o tsv)"
 ```
 
-Then in Keycloak Admin UI (`https://<keycloak_fqdn>/admin/master/console/#/ToTen/identity-providers`):
+Then in Keycloak Admin UI (`https://${KEYCLOAK_FQDN}/admin/master/console/#/ToTen/identity-providers`):
+
 - Add Identity Provider → **OpenID Connect v1.0**
-- Alias: `<alias>` (same string used in the redirect URI above — e.g. `entra-id`)
+- Alias: **`entra-id`** (must match the alias used in step 5 above)
 - Discovery URL: `https://login.microsoftonline.com/<TENANT_ID>/v2.0/.well-known/openid-configuration`
 - Client ID: `$PLATFORM_APP_ID`
 - Client Secret: generate one via `az ad app credential reset --id $PLATFORM_APP_ID`
 
 **Add a Role Mapper in Keycloak** so incoming Entra ID role claims are mapped to Keycloak realm roles:
+
 - In the Identity Provider config, go to **Mappers → Add mapper**
 - Type: **Role Importer**
 - Sync mode: **Inherit** (or Force)
 - The `value` strings in the App Roles above match Keycloak realm role names exactly — no manual name translation is needed.
 
-- [ ] `toten-platform` app registration created
-- [ ] App Roles (user, business_owner, internal_user, admin) defined in manifest
-- [ ] Redirect URI `https://<keycloak_fqdn>/realms/ToTen/broker/<alias>/endpoint` added (Web type)
+- [X] `toten-platform` app registration created
+- [X] App Roles (user, business_owner, internal_user, admin) defined in manifest
+- [ ] Redirect URI `https://${KEYCLOAK_FQDN}/realms/ToTen/broker/entra-id/endpoint` added (Web type)
 - [ ] Keycloak Identity Provider configured pointing at Entra ID OIDC discovery endpoint
 - [ ] `PLATFORM_APP_ID` and `TENANT_ID` recorded for Keycloak IdP config
 - [ ] Role Mapper (Role Importer type) added to the Entra ID Identity Provider in Keycloak
@@ -494,14 +517,23 @@ terraform init
 # Validate module syntax against provider schema
 terraform validate
 
+# Use the SHA from main — CI only pushes images on merges to main.
+# git rev-parse HEAD would give the feature-branch SHA which has no ACR image.
+API_IMAGE="totenprodacr.azurecr.io/api/toten-api:sha-$(git rev-parse origin/main)"
+WORKER_IMAGE="totenprodacr.azurecr.io/worker/toten-worker:sha-$(git rev-parse origin/main)"
+
 # Preview the full infrastructure delta (requires passwords)
 terraform plan \
   -var-file="envs/prod.tfvars" \
   -var="postgres_admin_password=<your-password>" \
   -var="keycloak_admin_password=<your-password>" \
-  -var="api_image=placeholder/api:latest" \
-  -var="worker_image=placeholder/worker:latest"
+  -var="api_image=${API_IMAGE}" \
+  -var="worker_image=${WORKER_IMAGE}"
 ```
+
+> For `terraform plan` the image does not need to exist in ACR — Terraform only validates the plan.
+> For `terraform apply` the image must be present in ACR; in CI this is guaranteed because the
+> `docker-build-push` job runs before the `terraform` job and passes the sha-tagged URI directly.
 
 - [ ] `terraform init` succeeds (backend connected)
 - [ ] `terraform validate` reports no errors
