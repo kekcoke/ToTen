@@ -198,5 +198,5 @@ terraform plan \
 - [x] Storage Blob Data Contributor role assigned to `toten-github-actions` SP
 - [x] `terraform init` succeeds from `terraform/` directory
 - [x] `terraform validate` reports "Success! The configuration is valid."
-- [ ] `terraform plan` generates a clean plan
+- [x] `terraform plan` generates a clean plan
 - [ ] `terraform output -raw keycloak_fqdn` returns a valid FQDN (after `apply`)
