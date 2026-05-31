@@ -44,3 +44,8 @@ variable "storage_connection_string" {
   type      = string
   sensitive = true
 }
+
+variable "terraform_principal_id" {
+  type        = string
+  description = "Object ID granted Key Vault Secrets Officer during apply."
+}
