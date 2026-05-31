@@ -64,6 +64,10 @@ resource "azurerm_container_app" "api" {
         value = var.managed_identity_client_id
       }
       env {
+        name  = "ASPNETCORE_ENVIRONMENT"
+        value = "Development"
+      }
+      env {
         name  = "Auth__Authority"
         value = var.keycloak_authority_url
       }
@@ -100,14 +104,14 @@ resource "azurerm_container_app" "api" {
         transport      = "HTTP"
         path           = "/health/alive"
         port           = 8081
-        period_seconds = 10
+        interval_seconds = 10
       }
 
       readiness_probe {
         transport      = "HTTP"
         path           = "/health/ready"
         port           = 8081
-        period_seconds = 10
+        interval_seconds = 10
       }
     }
   }

@@ -1,5 +1,5 @@
 resource "azurerm_servicebus_namespace" "main" {
-  name                = "${var.prefix}-sb"
+  name                = "${var.prefix}-servicebus"
   location            = var.location
   resource_group_name = var.resource_group_name
   sku                 = var.sku
@@ -25,5 +25,5 @@ resource "azurerm_servicebus_namespace_authorization_rule" "send_listen" {
   namespace_id = azurerm_servicebus_namespace.main.id
   listen       = true
   send         = true
-  manage       = false
+  manage       = true
 }
