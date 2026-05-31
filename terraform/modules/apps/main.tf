@@ -64,6 +64,10 @@ resource "azurerm_container_app" "api" {
         value = var.managed_identity_client_id
       }
       env {
+        name  = "ASPNETCORE_ENVIRONMENT"
+        value = "Development"
+      }
+      env {
         name  = "Auth__Authority"
         value = var.keycloak_authority_url
       }

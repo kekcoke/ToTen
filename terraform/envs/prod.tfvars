@@ -1,6 +1,6 @@
 environment         = "prod"
 location            = "canadacentral"
-postgres_sku        = "B_Standard_B2ms"
+postgres_sku        = "GP_Standard_D2s_v3"
 service_bus_sku     = "Standard"
 signalr_sku         = "Free_F1"
 acr_sku             = "Basic"

@@ -10,6 +10,10 @@ resource "azurerm_postgresql_flexible_server" "main" {
   backup_retention_days         = 7
   geo_redundant_backup_enabled  = false
   public_network_access_enabled = true
+
+  lifecycle {
+    ignore_changes = [zone]
+  }
 }
 
 # Enable PostGIS — EF Core migration calls CREATE EXTENSION IF NOT EXISTS postgis.
