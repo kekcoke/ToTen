@@ -446,6 +446,7 @@ $RECYCLE.BIN/
 terraform.tfvars
 *.auto.tfvars
 *.auto.tfvars.json
+terraform/envs/secrets.tfvars
 crash.log
 crash.*.log
 override.tf
@@ -454,3 +455,9 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+
+# docs
+docs/
+
+# Claude Code / MCP
+.mcp.json
