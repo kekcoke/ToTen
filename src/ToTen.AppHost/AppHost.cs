@@ -40,9 +40,14 @@ var blobs = storage.AddBlobs("blobs");
 var keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true, value: "admin");
 int? keycloakPort = builder.ExecutionContext.IsRunMode ? 8080 : null;
 var keycloak = builder.AddKeycloak("keycloak", adminPassword: keycloakPassword, port: keycloakPort)
-                      .WithLifetime(ContainerLifetime.Session)
-                      .WithRealmImport("./realms")
+                      .WithLifetime(ContainerLifetime.Persistent)
                       .WithArgs("--verbose");
+// Realm is baked into the image — no WithRealmImport volume mount needed.
+// To pick up realm changes: docker rm the persistent container, then dotnet run again.
+if (builder.ExecutionContext.IsRunMode)
+{
+    keycloak = keycloak.WithDockerfile("../..", "docker/keycloak/Dockerfile.dev");
+}
 
 // AddKeycloak auto-registers a health check against the HTTPS management port (9000).
 // That port uses a self-signed cert that is untrusted by the AppHost's HttpClient,
