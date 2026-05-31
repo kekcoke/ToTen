@@ -116,6 +116,7 @@ module "key_vault" {
   acr_admin_password                = module.registry.admin_password
   signalr_connection_string         = module.signalr.connection_string
   storage_connection_string         = module.storage.primary_connection_string
+  terraform_principal_id            = var.terraform_principal_id
 }
 
 # --- Keycloak (depends on ACA env, ACR, Postgres, managed identity) ---

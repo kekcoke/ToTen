@@ -56,3 +56,8 @@ variable "worker_image" {
   type        = string
   description = "Full ACR image URI for ToTen.Worker."
 }
+
+variable "terraform_principal_id" {
+  type        = string
+  description = "Object ID of the principal running Terraform; granted Key Vault Secrets Officer during apply."
+}

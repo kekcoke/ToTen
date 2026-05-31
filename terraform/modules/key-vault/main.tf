@@ -15,7 +15,7 @@ resource "azurerm_key_vault" "main" {
 resource "azurerm_role_assignment" "tf_secrets_officer" {
   scope                = azurerm_key_vault.main.id
   role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
+  principal_id         = var.terraform_principal_id
 }
 
 # ACA managed identity reads secrets at runtime.
