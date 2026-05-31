@@ -22,6 +22,11 @@ output "keycloak_authority_url" {
   value = module.keycloak.authority_url
 }
 
+output "keycloak_fqdn" {
+  value       = module.keycloak.fqdn
+  description = "Keycloak Container App FQDN — used for Entra ID redirect URI (Section H.5) and IdP endpoint construction."
+}
+
 output "key_vault_uri" {
   value = module.key_vault.vault_uri
 }

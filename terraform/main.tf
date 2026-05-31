@@ -9,8 +9,8 @@ terraform {
   }
 
   # Bootstrap (run once before terraform init):
-  #   az group create -n toten-tfstate-rg -l eastus
-  #   az storage account create -n totentfstate -g toten-tfstate-rg -l eastus --sku Standard_LRS
+  #   az group create -n toten-tfstate-rg -l canadacentral
+  #   az storage account create -n totentfstate -g toten-tfstate-rg -l canadacentral --sku Standard_LRS
   #   az storage container create -n tfstate-prod --account-name totentfstate
   backend "azurerm" {
     resource_group_name  = "toten-tfstate-rg"
