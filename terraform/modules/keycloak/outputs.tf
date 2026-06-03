@@ -1,7 +1,7 @@
 output "fqdn" {
-  value = azurerm_container_app.keycloak.latest_revision_fqdn
+  value = azurerm_container_app.keycloak.ingress[0].fqdn
 }
 
 output "authority_url" {
-  value = "https://${azurerm_container_app.keycloak.latest_revision_fqdn}/realms/ToTen"
+  value = "https://${azurerm_container_app.keycloak.ingress[0].fqdn}/realms/ToTen"
 }
