@@ -17,14 +17,20 @@ This **PRO version** includes all the features of the base template plus:
 - **Azure Container Apps** deployment ready
 - **CI/CD pipeline** for GitHub Actions
 
-### 🚀 PRO Features (New in this version)
+### PRO Features
 - **Pub/Sub messaging** with Azure Service Bus for item lifecycle notifications
 - **Background worker service** for asynchronous message processing
+- **Real-time chat** via Azure SignalR Service (`ChatHub`)
 - **Production health checks** for comprehensive monitoring
 - **Azure Application Insights** integration for enhanced telemetry
 - **Integration tests** with test containers and messaging mocks
+- **Acceptance tests** with Robot Framework (post-deploy)
+- **Performance tests** with Apache JMeter (baseline load)
+- **DAST** with OWASP ZAP (post-deploy security scan)
+- **SAST** with CodeQL (C# security-and-quality, weekly + on push/PR)
+- **Terraform IaC** (11 modules) replacing `azd` Bicep — manages all Azure resources
+- **`toten.sh` CLI** for infrastructure lifecycle (bootstrap, plan, apply, destroy, smoke-tests)
 - **GitHub Codespaces** support with pre-configured dev environment
-- **Azure DevOps pipeline** for enterprise CI/CD
 
 ## Prerequisites
 
@@ -233,58 +239,65 @@ A Postman collection is included at [src/ToTen.Api/postman_collection.json](src/
 
 You can now send requests to test your deployed API!
 
-## CI/CD Pipelines (Optional)
+## CI/CD Pipelines
 
-### GitHub Actions
+The project ships two GitHub Actions workflows in `.github/workflows/`.
 
-While `aspire deploy` is great for manual deployments, you can set up automated CI/CD pipelines for continuous deployment.
+### CI/CD Flow
 
-**Note**: The template includes a basic Azure Developer CLI configuration. You may need to adapt the GitHub Actions workflow to work with Aspire deployment commands or continue using the existing azd-based workflow.
+```mermaid
+flowchart TD
+    trigger["Push / PR → main\nor workflow_dispatch"]
 
-To set up GitHub Actions with Azure Developer CLI:
+    subgraph always["All branches"]
+        LT["lint-test\n✔ dotnet build · test\n📦 Upload .trx artifacts"]
+        DB["docker-build-push\n🐳 Build API · Worker · Keycloak\n[main] Push SHA+latest tags → ACR"]
+        TF["terraform\n📋 plan (all branches)\n[PR] Post plan comment\n[main] terraform apply"]
+    end
 
-1. **Install Azure Developer CLI** if not already installed:
-   ```bash
-   winget install microsoft.azd
-   ```
+    subgraph main_only["main only"]
+        DEP["deploy\n🚀 az containerapp update\nAPI + Worker → new image revision"]
+        NP["nuget-publish\n📦 Pack ToTen.Contracts\n→ GitHub Packages"]
+        DAST["dast-scan\n🔒 OWASP ZAP baseline\nagainst live API FQDN"]
+        RT["robot-tests\n🤖 Robot Framework\nacceptance suite"]
+        PERF["performance-test\n⚡ JMeter baseline\nload test"]
+    end
 
-2. **Initialize the Azure Developer CLI project**:
-   ```bash
-   azd init
-   ```
+    subgraph codeql_flow["codeql.yml — separate workflow\npush/PR to main + weekly Mon 03:00 UTC"]
+        CQL["codeql-analyze\n🔍 C# security-and-quality"]
+    end
 
-3. **Run the pipeline configuration command**:
-   ```bash
-   azd pipeline config --provider github
-   ```
+    trigger --> LT
+    LT --> DB
+    LT -->|main| NP
+    DB --> TF
+    TF -->|main| DEP
+    DEP --> DAST & RT & PERF
+```
 
-4. **Follow the interactive prompts** to configure:
-   - GitHub repository connection
-   - Azure authentication (Federated Identity recommended)
-   - Deployment settings and environments
+### Required Secrets & Variables
 
-5. **Commit and push** your changes to trigger the pipeline
+| Name | Type | Used by |
+|---|---|---|
+| `AZURE_CLIENT_ID` | Variable | OIDC login (all Azure jobs) |
+| `AZURE_TENANT_ID` | Variable | OIDC login |
+| `AZURE_SUBSCRIPTION_ID` | Variable | OIDC login |
+| `ACR_NAME` | Variable | Image tag construction |
+| `TF_VAR_POSTGRES_ADMIN_PASSWORD` | Secret | Terraform apply |
+| `TF_VAR_KEYCLOAK_ADMIN_PASSWORD` | Secret | Terraform apply |
+| `ROBOT_API_KEY` | Secret | Robot Framework acceptance tests |
+| `GITHUB_TOKEN` | Auto | NuGet publish to GitHub Packages |
 
-### Azure DevOps Pipelines
+### Infrastructure as Code
 
-To set up Azure DevOps CI/CD:
+Terraform (`terraform/`) manages all Azure resources. Use `./scripts/toten.sh` for lifecycle operations:
 
-1. **Run the pipeline configuration command**:
-   ```bash
-   azd pipeline config --provider azdo
-   ```
-
-2. **Follow the interactive prompts** to configure:
-   - Azure DevOps organization and project
-   - Authentication method (Federated Identity recommended)
-   - Deployment settings and environments
-
-3. **Commit and push** your changes to trigger the pipeline
-
-Both pipelines will automatically:
-- Build and test the application
-- Deploy to Azure using `azd`
-- Support multiple environments (dev, staging, prod)
+```bash
+./scripts/toten.sh bootstrap   # one-time setup (providers, TF state storage, Entra app)
+./scripts/toten.sh plan        # review changes before applying
+./scripts/toten.sh apply       # provision / update infrastructure
+./scripts/toten.sh smoke-tests # validate the live API and Keycloak after deploy
+```
 
 ## GitHub Codespaces
 
@@ -313,26 +326,81 @@ Once your codespace is ready:
 
 ```
 ├── src/
-│   ├── ToTen.Api/              # Main Web API project
-│   │   ├── Features/                 # Feature-based organization (Vertical Slice Architecture)
-│   │   ├── Data/                     # Entity Framework context and configurations
-│   │   ├── Models/                   # Domain models
-│   │   └── Shared/                   # Shared components (auth, CORS, error handling, messaging)
-│   ├── ToTen.AppHost/          # Aspire orchestration
-│   ├── ToTen.Contracts/        # 🆕 Shared message contracts
-│   ├── ToTen.Worker/           # 🆕 Background worker service
-│   └── ToTen.ServiceDefaults/  # Shared service configurations
+│   ├── ToTen.Api/              # ASP.NET Core Minimal API (Vertical Slice Architecture)
+│   │   ├── Features/           # 9 domains: Categories, Communications, Items, Manifests,
+│   │   │                       #   Marketplace, Memberships, Organizations, Storage, Users
+│   │   ├── Data/               # EF Core DbContext and configurations
+│   │   └── Shared/             # Auth, CORS, error handling, messaging, identity abstractions
+│   ├── ToTen.AppHost/          # Aspire orchestrator (local dev wiring)
+│   ├── ToTen.Contracts/        # Shared message event contracts (ItemEvents.cs)
+│   ├── ToTen.Worker/           # .NET Worker Service — 3 Rebus message consumers
+│   └── ToTen.ServiceDefaults/  # Shared Aspire defaults (OTEL, resilience, health checks)
+├── terraform/                  # Terraform IaC — 11 Azure modules
+│   ├── modules/                # observability, container-apps, postgres, service-bus,
+│   │                           #   storage, registry, signalr, key-vault, keycloak, apps
+│   └── envs/                   # prod.tfvars, secrets.tfvars (gitignored)
+├── scripts/
+│   └── toten.sh                # Infrastructure lifecycle CLI (bootstrap/plan/apply/destroy)
 ├── tests/
-│   └── ToTen.Api.IntegrationTests/  # API integration tests (with messaging mocks)
-├── .azdo/                            # Azure DevOps pipeline configuration
-├── .github/workflows/                # GitHub Actions workflows
-├── .devcontainer/                    # Dev container configuration
-└── azure.yaml                       # Azure Developer CLI configuration
+│   ├── ToTen.Api.IntegrationTests/   # WebApplicationFactory + Testcontainers tests
+│   ├── ToTen.AcceptanceTests/        # Robot Framework acceptance suite
+│   └── performance/                  # JMeter baseline load tests
+├── docker/                     # Dockerfiles for api/, worker/, keycloak/
+├── .adal/                      # AI agent specs and skills (architect, backend, devsecops, qa)
+├── .azdo/                      # Azure DevOps pipeline configuration
+├── .github/workflows/          # GitHub Actions: azure-dev.yml, codeql.yml
+├── .devcontainer/              # Dev container configuration
+└── azure.yaml                  # Azure Developer CLI configuration
 ```
 
 ## Architecture
 
-This template follows **Vertical Slice Architecture** principles, organizing code by features rather than technical layers. The architecture is structured as follows:
+This template follows **Vertical Slice Architecture** principles, organizing code by features rather than technical layers.
+
+### System Architecture
+
+```mermaid
+graph TB
+    Client([Client / Browser])
+
+    subgraph azure["Azure — Production"]
+        subgraph ACA["Azure Container Apps Environment"]
+            API["ToTen.Api\nASP.NET Core Minimal API"]
+            Worker["ToTen.Worker\n.NET Worker Service"]
+            KC["Keycloak\nOIDC / JWT Auth"]
+        end
+        PG[("Azure PostgreSQL\nFlexible Server v17")]
+        SB["Azure Service Bus\nitems-events · Api-Queue · Worker-Queue"]
+        STOR["Azure Blob Storage\nQR Codes / Assets"]
+        SR["Azure SignalR\nReal-time Chat"]
+        KV["Azure Key Vault\n6 Secrets"]
+        ACR["Azure Container Registry"]
+        AI["Application Insights\n+ Log Analytics"]
+    end
+
+    subgraph local["Local Development — Aspire"]
+        AppHost["ToTen.AppHost\nAspire Orchestrator"]
+        PG_L[("PostgreSQL\n+ pgAdmin :5050")]
+        SB_L["Service Bus\nEmulator"]
+        AZ_L["Azurite\nStorage Emulator"]
+        KC_L["Keycloak :8080"]
+    end
+
+    Client -->|HTTPS| API
+    Client -->|WebSocket| SR
+    API -->|JWT auth| KC
+    API -->|EF Core| PG
+    API -->|Publish events| SB
+    API -->|Blob upload| STOR
+    API -->|Real-time hub| SR
+    Worker -->|Subscribe| SB
+    Worker -->|EF Core| PG
+    KC -->|keycloak DB| PG
+    API & Worker & KC -.->|Secrets| KV
+    API & Worker & KC -.->|OTEL| AI
+    ACR -->|Pull images| ACA
+    AppHost --- PG_L & SB_L & AZ_L & KC_L
+```
 
 ### Feature Organization
 
