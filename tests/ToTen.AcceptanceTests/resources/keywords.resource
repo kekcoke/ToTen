@@ -1,5 +1,6 @@
 *** Settings ***
 Library     RequestsLibrary
+Library     Collections
 
 *** Variables ***
 ${BASE_URL}     http://localhost:5000

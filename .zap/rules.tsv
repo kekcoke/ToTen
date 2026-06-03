@@ -2,3 +2,11 @@
 # Format: <rule-id>\t<action>\t<description>
 # Actions: IGNORE WARN FAIL
 # Example: 10016\tIGNORE\tWeb Browser XSS Protection header not required
+
+# Security headers not applicable to a pure JSON API or ACA-managed TLS termination.
+# ZAP scans the root URL which returns 404; these headers are not required on 404 error pages.
+10035	IGNORE	HSTS header not required on a JSON API behind ACA TLS termination
+10038	IGNORE	CSP header not applicable to a JSON-only REST API
+10049	IGNORE	Cacheable content — false positive on 404 responses from ACA ingress
+10063	IGNORE	Permissions Policy header not applicable to a JSON REST API
+90005	IGNORE	Sec-Fetch-Dest missing — ZAP automated scanner does not set this header
