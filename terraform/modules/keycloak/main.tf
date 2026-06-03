@@ -36,7 +36,7 @@ resource "azurerm_container_app" "keycloak" {
   }
 
   template {
-    min_replicas = 1
+    min_replicas = 0
     max_replicas = 1
 
     container {

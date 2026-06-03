@@ -128,17 +128,6 @@ check_failed_container_apps() {
   done
 }
 
-# ── Terraform helpers ─────────────────────────────────────────────────────────
-tf() {
-  (cd "$TF_DIR" && run_cmd terraform "$@")
-}
-
-tf_with_vars() {
-  (cd "$TF_DIR" && run_cmd terraform "$@" \
-    -var-file="envs/${PROFILE}.tfvars" \
-    -var-file="envs/secrets.tfvars")
-}
-
 # Read a value from secrets.tfvars
 read_secret() {
   local key="$1"
@@ -295,11 +284,22 @@ cmd_bootstrap() {
   tfstate_id=$(az storage account show \
     --name "$TF_STATE_ACCOUNT" --resource-group "$TF_STATE_RG" --query id -o tsv)
 
+  # User Access Administrator at RG scope if it already exists; subscription scope otherwise.
+  # On a clean subscription the RG doesn't exist until after first provision, so fall back to
+  # sub scope (broader but equivalent for our purposes).
+  local uaa_scope
+  if az group show --name "$RESOURCE_GROUP" &>/dev/null 2>&1; then
+    uaa_scope="${scope_sub}/resourceGroups/${RESOURCE_GROUP}"
+  else
+    log_warn "Resource group '$RESOURCE_GROUP' not found yet — assigning User Access Administrator at subscription scope."
+    uaa_scope="$scope_sub"
+  fi
+
   local roles_and_scopes=(
     "Contributor:$scope_sub"
     "Key Vault Administrator:$scope_sub"
     "Storage Blob Data Contributor:$tfstate_id"
-    "User Access Administrator:$scope_rg"  # required for azurerm_role_assignment management
+    "User Access Administrator:$uaa_scope"
   )
   for entry in "${roles_and_scopes[@]}"; do
     local role="${entry%%:*}" scope="${entry#*:}"
@@ -382,6 +382,13 @@ cmd_provision() {
   check_secrets_tfvars
   check_failed_container_apps
 
+  # Phase 1: ensure ACR exists before pushing (guards ACR chicken-and-egg on clean subscriptions)
+  log_info "Ensuring ACR exists (targeted apply)..."
+  (cd "$TF_DIR" && run_cmd terraform apply \
+    -var-file="envs/${PROFILE}.tfvars" -var-file="envs/secrets.tfvars" \
+    -target=module.registry -auto-approve)
+  log_ok "ACR ready"
+
   local sha
   sha=$(git -C "$REPO_ROOT" rev-parse HEAD)
   local api_image="${ACR_NAME}.azurecr.io/api/toten-api:sha-${sha}"
@@ -417,18 +424,18 @@ cmd_provision() {
     -var-file="envs/${PROFILE}.tfvars" -var-file="envs/secrets.tfvars" \
     -out=tfplan -no-color 2>&1 | tee /tmp/toten-plan.txt)
 
+  if [[ "$DRY_RUN" == true ]]; then
+    log_info "Dry-run complete (terraform plan was not executed)."
+    return 0
+  fi
+
   local adds changes destroys
-  adds=$(grep -c " will be created" /tmp/toten-plan.txt 2>/dev/null || echo 0)
-  changes=$(grep -c " will be updated" /tmp/toten-plan.txt 2>/dev/null || echo 0)
-  destroys=$(grep -c " will be destroyed" /tmp/toten-plan.txt 2>/dev/null || echo 0)
+  adds=$(grep -c " will be created" /tmp/toten-plan.txt 2>/dev/null) || adds=0
+  changes=$(grep -c " will be updated" /tmp/toten-plan.txt 2>/dev/null) || changes=0
+  destroys=$(grep -c " will be destroyed" /tmp/toten-plan.txt 2>/dev/null) || destroys=0
   echo ""
   echo -e "  Plan: ${GREEN}+${adds} to add${NC}  ${YELLOW}~${changes} to change${NC}  ${RED}-${destroys} to destroy${NC}"
   echo ""
-
-  if [[ "$DRY_RUN" == true ]]; then
-    log_info "Dry-run complete. Full plan at /tmp/toten-plan.txt"
-    return 0
-  fi
 
   confirm "Apply this plan?" || die "Aborted."
 
@@ -450,6 +457,7 @@ cmd_provision() {
   log_info "Running EF Core migrations..."
   local my_ip
   my_ip=$(curl -s --max-time 10 https://api.ipify.org)
+  [[ -n "$my_ip" ]] || die "Could not determine public IP for the Postgres firewall rule."
   local rule_name="developer-migration-$(date +%Y%m%d%H%M%S)"
 
   run_cmd az postgres flexible-server firewall-rule create \
@@ -481,7 +489,7 @@ cmd_provision() {
 
   echo ""
   log_warn "=== Remaining manual steps ==="
-  echo "  H.3  Add 6 Claim-to-Role mappers in Keycloak Admin UI (post-deploy-runbook.md §2)"
+  echo "  H.3  Add 6 Claim-to-Role mappers in Keycloak Admin UI (post-deploy-runbook-2026-05-31.md §2)"
   echo "  H    Add production redirect URI to ToTen-api-swagger Keycloak client (§3)"
   echo "  D    Verify GitHub Actions variables/secrets are set (deployment-readiness.md §D)"
   echo "  CI   Monitor pipeline: GitHub → Actions → CI/CD"
@@ -531,14 +539,14 @@ cmd_adjust() {
       || die "Aborted. Service Bus SKU change not confirmed."
   fi
 
-  # ACA scale-to-zero note for free-tier
+  # ACA scale-to-zero is active for the free-tier profile
   if [[ "$PROFILE" == "free-tier" ]]; then
     echo ""
-    log_warn "Free-tier profile note:"
-    log_warn "  • API cold start: ~5–10s after idle period"
-    log_warn "  • Keycloak cold start: ~30–60s (JVM + realm import)"
-    log_warn "  • ACA scale-to-zero requires Terraform module changes (not applied by tfvars alone)"
-    log_warn "    See docs/infra-free-tier-downgrade.md §2.3 for the required module edits"
+    log_warn "Free-tier profile — scale-to-zero is active:"
+    log_warn "  • API: scales to zero when idle; cold start ~5–10s on first request"
+    log_warn "  • Worker: KEDA wakes it when ToTen-Worker-Queue has ≥5 messages; cold start ~5s"
+    log_warn "  • Keycloak: scales to zero when idle; cold start ~30–60s (JVM + realm import)"
+    log_warn "  • First auth after Keycloak cold start may appear slow — this is expected"
     echo ""
   fi
 
@@ -548,7 +556,7 @@ cmd_adjust() {
     -out=tfplan -no-color 2>&1 | tee /tmp/toten-adjust-plan.txt)
 
   local destroys
-  destroys=$(grep -c " will be destroyed" /tmp/toten-adjust-plan.txt 2>/dev/null || echo 0)
+  destroys=$(grep -c " will be destroyed" /tmp/toten-adjust-plan.txt 2>/dev/null) || destroys=0
   echo ""
   if [[ "$destroys" -gt 0 ]]; then
     log_warn "This plan destroys $destroys resource(s)."
@@ -563,6 +571,20 @@ cmd_adjust() {
 
   _load_tf_outputs
   _run_smoke_tests "${TF_OUT_API_FQDN:-}" "${TF_OUT_KEYCLOAK_FQDN:-}"
+}
+
+# ── cmd: smoke-tests ──────────────────────────────────────────────────────────
+cmd_smoke_tests() {
+  require_cmd curl; require_cmd jq
+
+  _load_tf_outputs
+  local api_fqdn="${TF_OUT_API_FQDN:-}" keycloak_fqdn="${TF_OUT_KEYCLOAK_FQDN:-}"
+
+  if [[ -z "$api_fqdn" && -z "$keycloak_fqdn" ]]; then
+    die "No Terraform outputs found in terraform/outputs.env.\nRun after a successful apply, or set TF_OUT_API_FQDN / TF_OUT_KEYCLOAK_FQDN manually."
+  fi
+
+  _run_smoke_tests "$api_fqdn" "$keycloak_fqdn"
 }
 
 # ── cmd: teardown ─────────────────────────────────────────────────────────────
@@ -584,6 +606,10 @@ cmd_teardown() {
   echo -en "${BOLD}${RED}Type 'destroy' to continue or anything else to abort: ${NC}"
   local confirm_word; read -r confirm_word
   [[ "$confirm_word" == "destroy" ]] || die "Teardown aborted."
+
+  log_warn "Key Vault 'toten-prod-kv' has purge_protection_enabled=true with 90-day soft-delete."
+  log_warn "After teardown, this name cannot be re-provisioned for 90 days."
+  log_warn "To re-provision sooner, recover the vault (az keyvault recover) or rename it in terraform/modules/key-vault/main.tf."
 
   log_info "Running terraform destroy..."
   (cd "$TF_DIR" && run_cmd terraform destroy \
@@ -723,7 +749,17 @@ cmd_rollback() {
       -o tsv 2>/dev/null | head -1 || echo "")
     [[ -n "$found_tag" ]] \
       || die "Image sha-${app_sha} not found in ACR. Only images built by CI on main are available."
-    log_ok "Image verified: $found_tag"
+    log_ok "API image verified: $found_tag"
+
+    local found_worker_tag
+    found_worker_tag=$(az acr repository show-tags \
+      --name "$ACR_NAME" \
+      --repository "worker/toten-worker" \
+      --query "[?contains(@, 'sha-${app_sha}')]" \
+      -o tsv 2>/dev/null | head -1 || echo "")
+    [[ -n "$found_worker_tag" ]] \
+      || die "Worker image sha-${app_sha} not found in ACR. API image exists but worker does not — CI may have failed mid-run. Choose a different SHA."
+    log_ok "Worker image verified: $found_worker_tag"
 
     local api_image="${ACR_NAME}.azurecr.io/api/toten-api:sha-${app_sha}"
     local worker_image="${ACR_NAME}.azurecr.io/worker/toten-worker:sha-${app_sha}"
@@ -760,6 +796,7 @@ ${BOLD}Commands:${NC}
   adjust      Switch config profile and re-apply Terraform
   teardown    terraform destroy + optional resource group delete
   rollback    Restore previous infra state or re-pin container image SHA
+  smoke-tests Run API and Keycloak smoke tests using saved Terraform outputs
 
 ${BOLD}Global options:${NC}
   --profile <name>   Config profile: ${BOLD}prod${NC} (default) | free-tier
@@ -786,8 +823,7 @@ ${BOLD}Examples:${NC}
 
 ${BOLD}Config profiles${NC} (terraform/envs/<profile>.tfvars):
   prod        Full SKUs — GP_Standard_D2s_v3 Postgres, Standard Service Bus
-  free-tier   Minimal SKUs — B_Standard_B1ms Postgres, Basic Service Bus
-              (ACA scale-to-zero requires separate module changes; see docs/infra-free-tier-downgrade.md §2.3)
+  free-tier   Minimal SKUs — B_Standard_B1ms Postgres, Basic Service Bus, scale-to-zero on all apps
 
 ${BOLD}Prerequisites:${NC}
   az, terraform, docker, dotnet, git, jq, curl
@@ -806,7 +842,7 @@ main() {
       --yes)      YES=true; shift ;;
       --dry-run)  DRY_RUN=true; shift ;;
       --help|-h)  usage; exit 0 ;;
-      bootstrap|provision|adjust|teardown|rollback)
+      bootstrap|provision|adjust|teardown|rollback|smoke-tests)
                   COMMAND="$1"; shift ;;
       # Capture rollback-specific flags to pass through
       --infra|--app|--state-version|--sha)
@@ -821,11 +857,12 @@ main() {
   [[ -n "$COMMAND" ]] || { usage; exit 1; }
 
   case "$COMMAND" in
-    bootstrap) cmd_bootstrap ;;
-    provision) cmd_provision ;;
-    adjust)    cmd_adjust ;;
-    teardown)  cmd_teardown ;;
-    rollback)  cmd_rollback "${rollback_args[@]+"${rollback_args[@]}"}" ;;
+    bootstrap)   cmd_bootstrap ;;
+    provision)   cmd_provision ;;
+    adjust)      cmd_adjust ;;
+    smoke-tests) cmd_smoke_tests ;;
+    teardown)    cmd_teardown ;;
+    rollback)    cmd_rollback "${rollback_args[@]+"${rollback_args[@]}"}" ;;
   esac
 }
 

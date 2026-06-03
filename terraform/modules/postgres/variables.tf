@@ -17,7 +17,7 @@ variable "admin_password" {
 
 variable "sku_name" {
   type    = string
-  default = "GP_Standard_D2s_v3"
+  default = "B_Standard_B1ms"
 }
 
 variable "allowed_cidr_ranges" {

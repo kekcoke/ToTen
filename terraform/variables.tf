@@ -29,12 +29,12 @@ variable "allowed_cidr_ranges" {
 
 variable "postgres_sku" {
   type    = string
-  default = "GP_Standard_D2s_v3"
+  default = "B_Standard_B1ms"
 }
 
 variable "service_bus_sku" {
   type    = string
-  default = "Standard"
+  default = "Basic"
 }
 
 variable "signalr_sku" {

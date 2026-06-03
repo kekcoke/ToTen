@@ -50,14 +50,14 @@ resource "azurerm_container_app" "api" {
   }
 
   template {
-    min_replicas = 1
+    min_replicas = 0
     max_replicas = 3
 
     container {
       name   = "api"
       image  = var.api_image
-      cpu    = 0.5
-      memory = "1Gi"
+      cpu    = 0.25
+      memory = "0.5Gi"
 
       env {
         name  = "AZURE_CLIENT_ID"
@@ -166,7 +166,7 @@ resource "azurerm_container_app" "worker" {
   }
 
   template {
-    min_replicas = 1
+    min_replicas = 0
     max_replicas = 1
 
     container {
@@ -194,6 +194,19 @@ resource "azurerm_container_app" "worker" {
       env {
         name        = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         secret_name = "appinsights-conn"
+      }
+    }
+
+    custom_scale_rule {
+      name             = "servicebus-worker-queue"
+      custom_rule_type = "azure-servicebus"
+      metadata = {
+        queueName    = "ToTen-Worker-Queue"
+        messageCount = "5"
+      }
+      authentication {
+        secret_name       = "servicebus-conn"
+        trigger_parameter = "connection"
       }
     }
   }
