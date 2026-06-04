@@ -121,6 +121,7 @@ jobs:
       worker_name: ${{ steps.tf-outputs.outputs.worker_name }}
       resource_group: ${{ steps.tf-outputs.outputs.resource_group }}
       api_fqdn: ${{ steps.tf-outputs.outputs.api_fqdn }}
+      keycloak_fqdn: ${{ steps.tf-outputs.outputs.keycloak_fqdn }}
     env:
       ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
@@ -191,6 +192,7 @@ jobs:
           echo "worker_name=$(terraform output -raw worker_name)" >> $GITHUB_OUTPUT
           echo "resource_group=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
           echo "api_fqdn=$(terraform output -raw api_fqdn)" >> $GITHUB_OUTPUT
+          echo "keycloak_fqdn=$(terraform output -raw keycloak_fqdn)" >> $GITHUB_OUTPUT
 
   # ── 4. Deploy — update ACA image revisions ───────────────────────────────────
   deploy:
@@ -250,6 +252,24 @@ jobs:
       - name: Install Robot Framework & Dependencies
         run: |
           pip install -r tests/ToTen.AcceptanceTests/requirements.txt
+
+      - name: Wait for Keycloak
+        run: |
+          echo "Waiting 10s for Keycloak cold start..."
+          sleep 10
+          url="https://${{ needs.terraform.outputs.keycloak_fqdn }}/realms/ToTen"
+          deadline=$((SECONDS + 300))
+          while [ $SECONDS -lt $deadline ]; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$url")
+            if [ "$status" = "200" ]; then
+              echo "Keycloak ready"
+              exit 0
+            fi
+            echo "HTTP $status — retrying in 5s ($((deadline - SECONDS))s remaining)"
+            sleep 5
+          done
+          echo "Keycloak did not become ready within 5 minutes"
+          exit 1
 
       - name: Run Robot Framework tests
         run: |
