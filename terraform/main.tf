@@ -157,4 +157,5 @@ module "apps" {
   storage_connection_string      = module.storage.primary_connection_string
   postgres_fqdn                  = module.postgres.fqdn
   postgres_admin_password        = var.postgres_admin_password
+  allowed_origins                = var.allowed_origins
 }

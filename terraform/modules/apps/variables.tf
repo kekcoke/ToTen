@@ -82,3 +82,9 @@ variable "swagger_client_id" {
   type    = string
   default = ""
 }
+
+variable "allowed_origins" {
+  type        = string
+  default     = ""
+  description = "Semicolon-separated list of allowed CORS origins for the API (see CorsExtensions.cs). Empty means no origin is allowed."
+}

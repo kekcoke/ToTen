@@ -80,6 +80,10 @@ resource "azurerm_container_app" "api" {
         value = var.swagger_client_id
       }
       env {
+        name  = "AllowedOrigins"
+        value = var.allowed_origins
+      }
+      env {
         name        = "ConnectionStrings__ToTenDB"
         secret_name = "postgres-conn"
       }
