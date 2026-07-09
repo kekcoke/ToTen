@@ -14,6 +14,8 @@ public static class ItemsEndpoints
     {
         var group = app.MapGroup("/items");
 
+        group.WithTags("items")
+            .RequireAuthorization();    
         group.MapGetItems();
         group.MapGetItem();
         group.MapCreateItem();
