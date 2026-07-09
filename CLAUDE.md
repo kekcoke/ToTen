@@ -19,6 +19,9 @@ dotnet test
 # Run tests for a specific project
 dotnet test tests/ToTen.Api.IntegrationTests
 
+# Run a single test (class or method, xunit.v3 via Microsoft.Testing.Platform)
+dotnet test tests/ToTen.Api.IntegrationTests --filter "FullyQualifiedName~ItemsEndpointsTests"
+
 # Add an EF Core migration (run from repo root)
 dotnet ef migrations add <MigrationName> --project src/ToTen.Api --startup-project src/ToTen.Api
 
