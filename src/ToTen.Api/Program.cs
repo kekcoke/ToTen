@@ -1,4 +1,5 @@
 using Azure.Identity;
+using Microsoft.AspNetCore.Authentication;
 using ToTen.Api.Data;
 using ToTen.Api.Features.Items;
 using ToTen.Api.Shared.Cors;
@@ -48,6 +49,10 @@ builder.Services.ConfigureOptions<JwtBearerOptionsSetup>();
 // Then add the authentication services
 builder.Services.AddAuthentication()
                 .AddJwtBearer();
+
+// Flattens Keycloak's nested realm_access/resource_access role claims and
+// raw sub/email claims into the ClaimTypes.* shape KeycloakIdentityManager reads
+builder.Services.AddTransient<IClaimsTransformation, KeycloakClaimsTransformation>();
 
 builder.Services.AddToTenAuthorization();
 
