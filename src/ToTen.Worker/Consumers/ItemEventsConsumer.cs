@@ -1,12 +1,14 @@
 using Rebus.Handlers;
 using ToTen.Contracts;
+using ToTen.Contracts.Events;
 
 namespace ToTen.Worker.Consumers;
 
 public class ItemEventsHandler :
     IHandleMessages<ItemMovedEvent>,
     IHandleMessages<ItemListingEvent>,
-    IHandleMessages<ItemTransferredEvent>
+    IHandleMessages<ItemTransferredEvent>,
+    IHandleMessages<ItemDeletedEvent>
 {
     private readonly ILogger<ItemEventsHandler> _logger;
 
@@ -33,6 +35,13 @@ public class ItemEventsHandler :
     {
         _logger.LogInformation("Processing ItemTransferredEvent: Item {ItemId} transferred from {From} to {To}",
             message.ItemId, message.FromOwnerId, message.ToOwnerId);
+        return Task.CompletedTask;
+    }
+
+    public Task Handle(ItemDeletedEvent message)
+    {
+        _logger.LogInformation("Processing ItemDeletedEvent: Item {ItemId} deleted by {UserId}",
+            message.ItemId, message.UserId);
         return Task.CompletedTask;
     }
 }

@@ -41,6 +41,10 @@ jobs:
             --configuration Release \
             --no-build \
             --logger "trx;LogFileName=test-results.trx"
+          dotnet test tests/ToTen.Worker.Tests/ToTen.Worker.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --logger "trx;LogFileName=worker-test-results.trx"
 
       - name: Upload test results
         if: always()

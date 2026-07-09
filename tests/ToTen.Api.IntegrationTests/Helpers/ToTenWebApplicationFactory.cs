@@ -147,8 +147,10 @@ public class ToTenWebApplicationFactory : WebApplicationFactory<Program>, IAsync
                 });
         });
 
-        builder.UseEnvironment("Test");
+        builder.UseEnvironment(EnvironmentName);
     }
+
+    protected virtual string EnvironmentName => "Test";
 
     private static void SeedCategories(DbContext context)
     {

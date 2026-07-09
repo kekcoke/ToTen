@@ -70,4 +70,68 @@ public class OrganizationAccessTests(ToTenWebApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
+
+    [Fact]
+    public async Task NonMember_CannotGetOrg_ReturnsForbidden()
+    {
+        var orgId = await CreateOrgAsync(_client);
+        var nonMemberClient = factory.CreateAuthenticatedClient(userId: Guid.NewGuid());
+
+        var response = await nonMemberClient.GetAsync(
+            $"/api/organizations/{orgId}",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task NonMember_CannotDeleteOrg_ReturnsForbidden_AndOrgSurvives()
+    {
+        var orgId = await CreateOrgAsync(_client);
+        var nonMemberClient = factory.CreateAuthenticatedClient(userId: Guid.NewGuid());
+
+        var response = await nonMemberClient.DeleteAsync(
+            $"/api/organizations/{orgId}",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+        var getResponse = await _client.GetAsync($"/api/organizations/{orgId}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task NonOwnerMember_CanGetOrg_ButCannotDeleteOrg()
+    {
+        var orgId = await CreateOrgAsync(_client);
+        var memberId = Guid.NewGuid();
+
+        // Owner (default client) invites a plain member into the org.
+        var inviteResponse = await _client.PostAsJsonAsync(
+            $"/api/organizations/{orgId}/members",
+            new InviteMemberRequest(memberId, "member"),
+            TestContext.Current.CancellationToken);
+        inviteResponse.EnsureSuccessStatusCode();
+
+        var memberClient = factory.CreateAuthenticatedClient(userId: memberId);
+
+        var getResponse = await memberClient.GetAsync($"/api/organizations/{orgId}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+        var deleteResponse = await memberClient.DeleteAsync($"/api/organizations/{orgId}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_CanGetAndDeleteAnyOrg()
+    {
+        var orgId = await CreateOrgAsync(_client);
+        var adminClient = factory.CreateAuthenticatedClient(roles: ["admin"]);
+
+        var getResponse = await adminClient.GetAsync($"/api/organizations/{orgId}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+        var deleteResponse = await adminClient.DeleteAsync($"/api/organizations/{orgId}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+    }
 }

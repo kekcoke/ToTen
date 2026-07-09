@@ -1,12 +1,15 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
+using Rebus.Bus;
 using ToTen.Api.Models;
 using ToTen.Api.Data;
 using ToTen.Api.Features.Items.CreateItem;
 using ToTen.Api.Features.Items.UpdateItem;
 using ToTen.Api.Features.Items.GetItem;
 using ToTen.Api.IntegrationTests.Helpers;
+using ToTen.Contracts.Events;
 
 namespace ToTen.Api.IntegrationTests.Items;
 
@@ -78,6 +81,9 @@ public class ItemsEndpointsTests(ToTenWebApplicationFactory factory) : IClassFix
         var response = await _client.PostAsJsonAsync("/items", request, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<InventoryItem>(TestContext.Current.CancellationToken);
+        Assert.NotNull(created);
+        Assert.Equal(_factory.DefaultTestUserId.ToString(), created.OwnerId);
     }
 
     [Fact]
@@ -135,5 +141,10 @@ public class ItemsEndpointsTests(ToTenWebApplicationFactory factory) : IClassFix
         using var verifyCtx = _factory.CreateDbContext();
         var deletedItem = await verifyCtx.InventoryItems.FindAsync([item.Id], TestContext.Current.CancellationToken);
         Assert.Null(deletedItem);
+
+        var bus = _factory.Services.GetRequiredService<IBus>();
+        await bus.Received(1).Publish(
+            Arg.Is<ItemDeletedEvent>(e => e.ItemId == item.Id),
+            Arg.Any<IDictionary<string, string>>());
     }
 }

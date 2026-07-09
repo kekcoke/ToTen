@@ -7,8 +7,6 @@ namespace ToTen.Api.IntegrationTests.Security;
 /// <summary>
 /// Security contract tests — each protected route must return 401 for unauthenticated requests
 /// and 403 for authenticated requests that lack the required role/policy.
-/// NOTE: Items CRUD endpoints (/items/*) are currently public (no RequireAuthorization call),
-/// which is a documented security gap. Those routes are excluded from the 401 contract.
 /// </summary>
 public class AuthorizationContractTests(ToTenWebApplicationFactory factory)
     : IClassFixture<ToTenWebApplicationFactory>
@@ -20,6 +18,12 @@ public class AuthorizationContractTests(ToTenWebApplicationFactory factory)
         // Storage
         yield return ["POST", "/api/locations"];
         yield return ["POST", $"/api/items/{Guid.NewGuid()}/move"];
+        // Items
+        yield return ["GET", "/items"];
+        yield return ["GET", $"/items/{Guid.NewGuid()}"];
+        yield return ["POST", "/items"];
+        yield return ["PUT", $"/items/{Guid.NewGuid()}"];
+        yield return ["DELETE", $"/items/{Guid.NewGuid()}"];
         // Organizations
         yield return ["POST", "/api/organizations"];
         yield return ["GET", $"/api/organizations/{Guid.NewGuid()}"];
