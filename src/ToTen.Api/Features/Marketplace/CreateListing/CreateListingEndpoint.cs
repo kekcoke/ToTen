@@ -4,7 +4,7 @@ using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
 using ToTen.Api.Shared.RateLimiting;
 using Rebus.Bus;
-using ToTen.Contracts;
+using ToTen.Contracts.Events;
 using System.Security.Claims;
 
 namespace ToTen.Api.Features.Marketplace.CreateListing;

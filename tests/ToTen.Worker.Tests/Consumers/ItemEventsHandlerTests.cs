@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using ToTen.Contracts;
 using ToTen.Contracts.Events;
 using ToTen.Worker.Consumers;
 

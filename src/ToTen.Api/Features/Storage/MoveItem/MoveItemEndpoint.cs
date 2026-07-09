@@ -3,7 +3,7 @@ using Rebus.Bus;
 using Microsoft.AspNetCore.Mvc;
 using ToTen.Api.Data;
 using ToTen.Api.Shared.Identity;
-using ToTen.Contracts;
+using ToTen.Contracts.Events;
 
 namespace ToTen.Api.Features.Storage.MoveItem;
 
