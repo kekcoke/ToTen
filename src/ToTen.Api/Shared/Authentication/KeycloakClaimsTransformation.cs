@@ -70,12 +70,9 @@ public class KeycloakClaimsTransformation(IOptions<AuthOptions> authOptions) : I
         using var document = JsonDocument.Parse(json);
         if (document.RootElement.TryGetProperty("roles", out var roles) && roles.ValueKind == JsonValueKind.Array)
         {
-            foreach (var role in roles.EnumerateArray())
+            foreach (var value in roles.EnumerateArray().Select(role => role.GetString()).Where(value => value is not null))
             {
-                if (role.GetString() is { } value)
-                {
-                    yield return value;
-                }
+                yield return value;
             }
         }
     }
@@ -87,12 +84,11 @@ public class KeycloakClaimsTransformation(IOptions<AuthOptions> authOptions) : I
             client.TryGetProperty("roles", out var roles) &&
             roles.ValueKind == JsonValueKind.Array)
         {
-            foreach (var role in roles.EnumerateArray())
+            foreach (var value in roles.EnumerateArray()
+                                       .Select(role => role.GetString())
+                                       .Where(value => value is not null)!)
             {
-                if (role.GetString() is { } value)
-                {
-                    yield return value;
-                }
+                yield return value;
             }
         }
     }
