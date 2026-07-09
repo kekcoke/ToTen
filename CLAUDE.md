@@ -165,3 +165,7 @@ Two GitHub Actions workflows (`.github/workflows/`):
 | `nuget-publish` | `main` only | Pack + push `ToTen.Contracts` to GitHub Packages |
 
 **`codeql.yml`** — CodeQL C# static analysis; triggers on push/PR to `main` and weekly (Monday 03:00 UTC).
+
+## Architecture/Security Audit Follow-up
+
+`docs/architecture-security-audit-2026-07-08.md` — Section 1 (Critical) resolved in #19, Section 2 (High Priority) resolved in the following MR. Notable scoping decisions from both passes, plus the open product decisions they depend on, are tracked in `docs/section-2-flagged-issues.md`: audit finding 1.8 (no mobile-ready Keycloak client), 2.6 (Worker consumers are log-only), 2.3's message-persistence gap, and the disposition of 2.7's unreferenced event records (kept, not deleted — same posture as the 4 unused messaging files preserved from 1.9).
