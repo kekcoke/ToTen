@@ -45,6 +45,9 @@ builder.Services.AddOptions<AuthOptions>()
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
+builder.Services.AddOptions<StorageOptions>()
+                .Bind(builder.Configuration.GetSection(StorageOptions.SectionName));
+
 // Register the JWT Bearer options configurator first
 builder.Services.ConfigureOptions<JwtBearerOptionsSetup>();
 
