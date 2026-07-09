@@ -113,3 +113,30 @@
 | **Keep, parked** (current disposition) | Consistent with the existing precedent: `IEventPublisher`/`EventPublisher`/`ServiceBusExtensions`/`ServiceBusProcessorFactory` were already kept rather than deleted (see §2.7, and the 1.9 fix note preserving "4 unused messaging files"); `items-events` is part of that same family, not a separate decision | The queue and dead code linger until/unless that broader precedent is revisited |
 
 **Decision criteria:** This isn't actually a new decision — it inherits the one already made for §2.7/1.9 (keep parked messaging dead code rather than deleting piecemeal or wiring up without a concrete need). Revisit `items-events` together with that dead-code family as a whole, not in isolation, if a real second-subscriber use case for Rebus ever materializes (per audit 3.7's "revisit SKU if a second subscriber to the same event type is ever needed").
+
+---
+
+## §4 — CRUD Completeness Matrix: missing endpoints require product scoping
+
+**Status:** Partially resolved. Unlike §1–§3, §4 is a matrix documenting gaps, not a set of prescribed fixes — most of it is genuinely missing REST surface, not hardening.
+
+**What was fixed in this pass:** the one mechanical gap called out in §4's "Additional structural notes" — *"Pagination exists only on `Marketplace/Search`; every other list endpoint returns the full table with no limit."* `GET /items` and `GET /categories` now accept `page`/`pageSize` query params (default 20, capped at 100) and return an `X-Total-Count` header, following the existing `Marketplace/Search` pagination pattern. This is a resource-exhaustion/response-size fix, not a new authorization decision — the global rate limiter already covers every endpoint, so no policy work was needed. Response body shapes are unchanged (still flat arrays) to avoid a breaking contract change for zero benefit.
+
+**What was skipped:** every other missing endpoint in the matrix. Building any of these means inventing a new authorization/ownership model per domain — that's new product surface, not a mechanical fix, and several already overlap decisions parked elsewhere in this document.
+
+| Domain / gap | Overlaps with | Notes |
+|---|---|---|
+| Categories — no Create/Read-single/Update/Delete (list-only, anonymous) | — | Full management API doesn't exist. Closest precedent is `AdminPolicy` (used on `Users`), but whether Categories should be admin-managed at all vs. seed-only-forever is an open product question. |
+| Storage — Location: create-only, no list/view/edit/delete | — | Location has no read-back path at all once created. |
+| Storage — Box: fully modeled entity, zero CRUD endpoints | — | Only ever referenced by ID from Move/AssociateBoxes/GenerateQR; no ownership model defined for a Box on its own. |
+| Manifests — create/mutate only, no read-back, no status transition | — | No way to ever view a manifest via the API once created. |
+| Marketplace — Offer: no reject/counter (enum supports it) | — | Seller can only accept today. |
+| Marketplace — Transaction / ItemLineage: write-only, no read endpoints | **§2.7** | Same "audit trail vs. no product need yet" decision already parked for the dead event records — a purchase-history/lineage endpoint would consume exactly those events. |
+| Organizations — no "my orgs" list, no rename/edit | — | Create/read-single/delete exist (with the §1.5 membership-check fix already applied); list and rename don't. |
+| Memberships — no member list, no role change post-invite | — | The one domain the audit calls out as the reference pattern for authorization — but even it is missing read/update. |
+| Users — no real Keycloak Admin API integration (Create/Update/Delete are no-ops or absent, Read is hardcoded mock data) | — | Largest scope item in the matrix; not a CRUD gap so much as the feature never being built. |
+| Communications — no REST surface at all, SignalR-only, no persistence | **§2.3** | Already flagged: `ChatHub` anti-abuse controls shipped, persistence (`ChatThread`/`ChatMessage`) deliberately deferred pending a participant-model decision. |
+| 5 of 6 authorization policies (`UserPolicy`, `BusinessOwnerPolicy`, `InternalUserPolicy`, `SuperAdminPolicy`, `ThirdPartyPolicy`) never referenced by any endpoint | — | Wiring a policy to a specific endpoint is itself a per-endpoint security decision, not a global mechanical fix — which policy applies where has to be decided domain by domain (likely alongside the missing-endpoint work above). |
+| `Organization.DateDeleted` — modeled soft-delete column, never used; all deletes are hard deletes | — | Switching hard-delete → soft-delete changes query semantics at every existing read call site (list/get queries would need a `DateDeleted == null` filter added everywhere), not a mechanical toggle. |
+
+**Decision criteria:** Prioritize by what's blocking real usage, not by closing every cell uniformly. Memberships (already the reference-pattern domain) and Marketplace Offer reject/counter are the smallest, most self-contained gaps if a next pass wants to pick one. Everything touching Communications, Marketplace Transaction/ItemLineage, or Users should be scoped together with their existing flagged items (§2.3, §2.7) rather than in isolation.

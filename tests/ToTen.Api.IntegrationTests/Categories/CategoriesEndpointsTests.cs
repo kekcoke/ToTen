@@ -30,4 +30,19 @@ public class CategoriesEndpointsTests(ToTenWebApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetCategories_RespectsPagination()
+    {
+        var response = await _client.GetAsync("/categories?page=1&pageSize=2", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<IEnumerable<CategoryDto>>(TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count());
+
+        Assert.True(response.Headers.TryGetValues("X-Total-Count", out var totalCountValues));
+        var totalCount = int.Parse(totalCountValues.Single());
+        Assert.Equal(5, totalCount);
+    }
 }
