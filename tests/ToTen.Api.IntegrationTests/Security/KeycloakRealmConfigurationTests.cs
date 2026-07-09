@@ -29,7 +29,7 @@ public class KeycloakRealmConfigurationTests
 
     private static JsonElement LoadRealm()
     {
-        var realmPath = Path.Combine(FindRepoRoot(), "src", "ToTen.AppHost", "realms", "ToTen-realm.json");
+        var realmPath = Path.Join(FindRepoRoot(), "src", "ToTen.AppHost", "realms", "ToTen-realm.json");
         using var stream = File.OpenRead(realmPath);
         using var document = JsonDocument.Parse(stream);
         return document.RootElement.Clone();
