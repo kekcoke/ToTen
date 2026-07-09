@@ -27,6 +27,8 @@ var serviceBus = builder.AddAzureServiceBus("servicebus")
 var queue = serviceBus.AddServiceBusQueue("items-events");
 var apiQueue = serviceBus.AddServiceBusQueue("ToTen-Api-Queue");
 var workerQueue = serviceBus.AddServiceBusQueue("ToTen-Worker-Queue");
+var apiErrorQueue = serviceBus.AddServiceBusQueue("ToTen-Api-Error");
+var workerErrorQueue = serviceBus.AddServiceBusQueue("ToTen-Worker-Error");
 
 // Add Azure Storage with Azurite emulator for local development
 var storage = builder.AddAzureStorage("storage")

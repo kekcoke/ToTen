@@ -1,4 +1,5 @@
 using Rebus.Config;
+using Rebus.Retry.Simple;
 using ToTen.Worker.Consumers;
 using ToTen.Worker.Services;
 
@@ -19,6 +20,7 @@ builder.Services.AddRebus(
         .Transport(t => t.UseAzureServiceBus(
             builder.Configuration.GetConnectionString("servicebus"),
             "ToTen-Worker-Queue"))
+        .Options(o => o.RetryStrategy(errorQueueName: "ToTen-Worker-Error", maxDeliveryAttempts: 5))
 );
 
 // Register message handlers
