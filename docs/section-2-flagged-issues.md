@@ -97,3 +97,19 @@
 | **Leave as-is until a consumer exists** (current state) | No process overhead for a package nobody depends on | `ToTen.Contracts` versions remain meaningless as a compatibility signal until this is revisited |
 
 **Decision criteria:** Revisit when the mobile app (or any other consumer) actually takes a dependency on a published `ToTen.Contracts` version — that's the point at which a version bump can break someone, and semver starts meaning something.
+
+---
+
+## 3.8 — `items-events` queue has no live producer or consumer
+
+**Status:** Resolved by extending existing precedent, not by new investigation — documented here rather than left as an unstated implication. No code or Terraform change for this finding specifically.
+
+**The problem:** `items-events` is provisioned in `terraform/modules/service-bus/main.tf` and `src/ToTen.AppHost/AppHost.cs`, and referenced by the dead `IEventPublisher`/`EventPublisher`/`ServiceBusExtensions.AddServiceBusMessaging` path (`AddServiceBusMessaging` is never called from `Program.cs`, so this registration path is unreachable) — but nothing publishes to it or consumes from it today. The real, live event path (`DeleteItem` → `IBus.Publish(new ItemDeletedEvent(...))`, and every other publisher in the Api) goes through Rebus's `ToTen-Api-Queue`/`ToTen-Worker-Queue`, not `items-events`.
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Remove** the queue and the dead `IEventPublisher` path | Removes genuinely unreachable code and an unused Azure resource | Contradicts the precedent already set in §2.7/finding 1.9 (below), where the same dead code was explicitly kept, not deleted |
+| **Wire it up** — route `DeleteItem` through it properly | Closes the gap the audit's fix direction names | New functionality (a second publish path for one event, or migrating `DeleteItem` off Rebus), not a cleanup; no product need identified for a second event-publishing mechanism |
+| **Keep, parked** (current disposition) | Consistent with the existing precedent: `IEventPublisher`/`EventPublisher`/`ServiceBusExtensions`/`ServiceBusProcessorFactory` were already kept rather than deleted (see §2.7, and the 1.9 fix note preserving "4 unused messaging files"); `items-events` is part of that same family, not a separate decision | The queue and dead code linger until/unless that broader precedent is revisited |
+
+**Decision criteria:** This isn't actually a new decision — it inherits the one already made for §2.7/1.9 (keep parked messaging dead code rather than deleting piecemeal or wiring up without a concrete need). Revisit `items-events` together with that dead-code family as a whole, not in isolation, if a real second-subscriber use case for Rebus ever materializes (per audit 3.7's "revisit SKU if a second subscriber to the same event type is ever needed").
