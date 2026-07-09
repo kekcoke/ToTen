@@ -28,6 +28,16 @@ public class StorageEndpointsTests(ToTenWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task CreateLocation_InvalidRequest_ReturnsBadRequest()
+    {
+        var request = new CreateLocationRequest("", null, null, null);
+
+        var response = await _client.PostAsJsonAsync("/api/locations", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateLocation_WithGeometry_CoordinatesRoundTrip()
     {
         var request = new CreateLocationRequest("Shed", 40.7128, -74.0060, null);

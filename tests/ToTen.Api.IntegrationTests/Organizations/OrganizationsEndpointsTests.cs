@@ -34,6 +34,16 @@ public class OrganizationsEndpointsTests(ToTenWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task CreateOrganization_InvalidRequest_ReturnsBadRequest()
+    {
+        var request = new CreateOrganizationRequest("Bad Org", "NotARealType");
+
+        var response = await _client.PostAsJsonAsync("/api/organizations", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task GetOrganization_WithAuth_ReturnsOk()
     {
         var createRequest = new CreateOrganizationRequest("Get Test Org", "Business");

@@ -52,6 +52,20 @@ public class MarketplaceEndpointsTests(ToTenWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task CreateListing_InvalidRequest_ReturnsBadRequest()
+    {
+        using var scope = factory.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<ToTenContext>();
+        var item = await SeedItemAsync(ctx, factory.DefaultTestUserId.ToString());
+
+        var request = new CreateListingRequest(item.Id, -5m, DateOnly.FromDateTime(DateTime.Today));
+
+        var response = await _client.PostAsJsonAsync("/api/listings", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateListing_UnownedItem_ReturnsForbidden()
     {
         using var scope = factory.Services.CreateScope();

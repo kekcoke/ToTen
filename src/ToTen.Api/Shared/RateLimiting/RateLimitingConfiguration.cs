@@ -30,7 +30,11 @@ public static class RateLimitingConfiguration
 
             options.AddPolicy(StrictPolicy, context =>
                 RateLimitPartition.GetFixedWindowLimiter(
-                    GetPartitionKey(context),
+                    // Partitioned per logical endpoint (not just per-client) so one
+                    // strict endpoint's budget doesn't get consumed by requests to
+                    // another, and route parameter values (e.g. a listing id) don't
+                    // fragment a single endpoint's budget into many separate ones.
+                    $"{GetPartitionKey(context)}:{context.GetEndpoint()?.DisplayName}",
                     _ => new FixedWindowRateLimiterOptions
                     {
                         Window = TimeSpan.FromMinutes(1),
