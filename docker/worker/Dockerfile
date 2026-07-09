@@ -8,5 +8,6 @@ RUN dotnet publish src/ToTen.Worker/ToTen.Worker.csproj \
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
-COPY --from=build /app/publish .
+COPY --from=build --chown=app:app /app/publish .
+USER app
 ENTRYPOINT ["dotnet", "ToTen.Worker.dll"]

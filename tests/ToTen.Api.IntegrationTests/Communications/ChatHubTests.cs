@@ -1,5 +1,9 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
+using ToTen.Api.Data;
 using ToTen.Api.IntegrationTests.Helpers;
+using ToTen.Api.Models;
 
 namespace ToTen.Api.IntegrationTests.Communications;
 
@@ -83,6 +87,91 @@ public class ChatHubTests(ToTenWebApplicationFactory factory)
             Assert.Same(tcs.Task, completed);
             var (_, receivedMsg) = await tcs.Task;
             Assert.Equal("hello", receivedMsg);
+        }
+        finally
+        {
+            await connection.StopAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task SendMessage_TooLong_ThrowsHubException()
+    {
+        var connection = BuildConnection(factory);
+        try
+        {
+            await connection.StartAsync(TestContext.Current.CancellationToken);
+
+            var tooLong = new string('a', 4001);
+
+            await Assert.ThrowsAsync<HubException>(() => connection.InvokeAsync(
+                "SendMessage",
+                factory.DefaultTestUserId.ToString(),
+                tooLong,
+                TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            await connection.StopAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task SendMessage_ExceedsRateLimit_ThrowsHubException()
+    {
+        var connection = BuildConnection(factory);
+        try
+        {
+            await connection.StartAsync(TestContext.Current.CancellationToken);
+
+            // Limit is 20 messages / 10s window (self-messages, so the
+            // organization-membership check is bypassed and doesn't interfere).
+            for (var i = 0; i < 20; i++)
+            {
+                await connection.InvokeAsync(
+                    "SendMessage",
+                    factory.DefaultTestUserId.ToString(),
+                    "hi",
+                    TestContext.Current.CancellationToken);
+            }
+
+            await Assert.ThrowsAsync<HubException>(() => connection.InvokeAsync(
+                "SendMessage",
+                factory.DefaultTestUserId.ToString(),
+                "hi",
+                TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            await connection.StopAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task SendMessage_ToUserInDifferentOrganization_ThrowsHubException()
+    {
+        using var scope = factory.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<ToTenContext>();
+
+        var senderOrg = new Organization { Id = Guid.NewGuid(), Name = "Sender Org", Type = "Household" };
+        var receiverOrg = new Organization { Id = Guid.NewGuid(), Name = "Receiver Org", Type = "Household" };
+        var receiverId = Guid.NewGuid();
+        ctx.Organizations.AddRange(senderOrg, receiverOrg);
+        ctx.OrganizationMemberships.AddRange(
+            new OrganizationMembership { OrganizationId = senderOrg.Id, UserId = factory.DefaultTestUserId.ToString() },
+            new OrganizationMembership { OrganizationId = receiverOrg.Id, UserId = receiverId.ToString() });
+        await ctx.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var connection = BuildConnection(factory);
+        try
+        {
+            await connection.StartAsync(TestContext.Current.CancellationToken);
+
+            await Assert.ThrowsAsync<HubException>(() => connection.InvokeAsync(
+                "SendMessage",
+                receiverId.ToString(),
+                "hello",
+                TestContext.Current.CancellationToken));
         }
         finally
         {

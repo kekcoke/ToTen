@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
+using ToTen.Api.Shared.RateLimiting;
 using System.Security.Claims;
 
 namespace ToTen.Api.Features.Organizations;
@@ -38,7 +39,8 @@ public static class OrganizationEndpoints
             await context.SaveChangesAsync();
 
             return Results.Created($"/api/organizations/{org.Id}", new OrganizationResponse(org.Id, org.Name, org.Type));
-        });
+        })
+        .RequireRateLimiting(RateLimitingConfiguration.StrictPolicy);
 
         group.MapGet("/{id:guid}", async (Guid id, ToTenContext context, IIdentityManager identityManager, ClaimsPrincipal principal) =>
         {

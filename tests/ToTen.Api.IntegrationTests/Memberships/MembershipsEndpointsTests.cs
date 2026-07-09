@@ -51,6 +51,20 @@ public class MembershipsEndpointsTests(ToTenWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task InviteMember_InvalidRole_ReturnsBadRequest()
+    {
+        var orgId = await CreateOrgAsync();
+        var request = new InviteMemberRequest(Guid.NewGuid(), "SuperOwner");
+
+        var response = await _client.PostAsJsonAsync(
+            $"/api/organizations/{orgId}/members",
+            request,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task RemoveMember_ByOwner_ReturnsNoContent()
     {
         var orgId = await CreateOrgAsync();

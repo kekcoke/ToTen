@@ -48,6 +48,17 @@ public class ManifestsEndpointsTests(ToTenWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task CreateManifest_InvalidRequest_ReturnsBadRequest()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/manifests",
+            new CreateManifestRequest(Guid.Empty, Guid.Empty, null),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateManifest_NoAuth_Returns401()
     {
         var unauthClient = factory.CreateUnauthenticatedClient();

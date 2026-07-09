@@ -84,6 +84,19 @@ jobs:
       - name: Build Keycloak image
         run: docker build -t ${{ steps.tags.outputs.keycloak_image }} -f docker/keycloak/Dockerfile .
 
+      # Audit finding 2.4: API/Worker images must run as a non-root user. Fails
+      # the build if a future change reintroduces a root container.
+      - name: Verify API and Worker images run as non-root
+        run: |
+          api_uid=$(docker run --rm --entrypoint id ${{ steps.tags.outputs.api_image }} -u)
+          worker_uid=$(docker run --rm --entrypoint id ${{ steps.tags.outputs.worker_image }} -u)
+          echo "API image UID: $api_uid"
+          echo "Worker image UID: $worker_uid"
+          if [ "$api_uid" = "0" ] || [ "$worker_uid" = "0" ]; then
+            echo "::error::API or Worker image is configured to run as root (uid 0)"
+            exit 1
+          fi
+
       - name: Azure login (OIDC)
         if: github.ref == 'refs/heads/main'
         uses: azure/login@v2

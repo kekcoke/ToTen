@@ -87,6 +87,16 @@ public class ItemsEndpointsTests(ToTenWebApplicationFactory factory) : IClassFix
     }
 
     [Fact]
+    public async Task CreateItem_InvalidRequest_ReturnsBadRequest()
+    {
+        var request = new CreateItemRequest("", "New Description", Guid.Empty);
+
+        var response = await _client.PostAsJsonAsync("/items", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task UpdateItem_ReturnsNoContent()
     {
         var categoryId = _factory.GetSeedCategoryId();

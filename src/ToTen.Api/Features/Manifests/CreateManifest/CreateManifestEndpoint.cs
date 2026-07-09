@@ -3,7 +3,7 @@ using Rebus.Bus;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
-using ToTen.Contracts;
+using ToTen.Contracts.Events;
 
 namespace ToTen.Api.Features.Manifests.CreateManifest;
 

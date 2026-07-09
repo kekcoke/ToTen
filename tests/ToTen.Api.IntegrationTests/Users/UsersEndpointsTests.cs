@@ -41,4 +41,15 @@ public class UsersEndpointsTests(ToTenWebApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
+
+    [Fact]
+    public async Task UpdateUserRoles_EmptyRoles_ReturnsBadRequest()
+    {
+        var client = factory.CreateAuthenticatedClient(roles: ["admin"]);
+        var request = new UpdateUserRolesRequest([]);
+
+        var response = await client.PutAsJsonAsync($"/api/users/{Guid.NewGuid()}/roles", request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

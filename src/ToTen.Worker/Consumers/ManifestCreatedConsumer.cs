@@ -1,5 +1,5 @@
 using Rebus.Handlers;
-using ToTen.Contracts;
+using ToTen.Contracts.Events;
 
 namespace ToTen.Worker.Consumers;
 
