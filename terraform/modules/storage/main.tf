@@ -6,6 +6,11 @@ resource "azurerm_storage_account" "main" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
   min_tls_version          = "TLS1_2"
+
+  # Defense-in-depth: even if application code (or a future regression) requests
+  # PublicAccessType.Blob on a container, the storage account itself refuses to
+  # honor it.
+  allow_nested_items_to_be_public = false
 }
 
 resource "azurerm_storage_container" "blobs" {
