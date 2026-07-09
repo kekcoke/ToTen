@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace ToTen.Api.Shared.Authentication;
@@ -10,7 +11,8 @@ namespace ToTen.Api.Shared.Authentication;
 /// Initializes a new instance of the <see cref="JwtBearerOptionsSetup"/> class.
 /// </remarks>
 /// <param name="authOptions">The authentication options.</param>
-public class JwtBearerOptionsSetup(IOptions<AuthOptions> authOptions) : IConfigureNamedOptions<JwtBearerOptions>
+/// <param name="environment">The hosting environment, used to gate HTTPS metadata enforcement.</param>
+public class JwtBearerOptionsSetup(IOptions<AuthOptions> authOptions, IHostEnvironment environment) : IConfigureNamedOptions<JwtBearerOptions>
 {
     /// <summary>
     /// Configures the JWT Bearer options for the specified scheme.
@@ -35,6 +37,6 @@ public class JwtBearerOptionsSetup(IOptions<AuthOptions> authOptions) : IConfigu
         options.Authority = authOptions.Value.Authority;
         options.Audience = authOptions.Value.Audience;
         options.MapInboundClaims = false;
-        options.RequireHttpsMetadata = false;
+        options.RequireHttpsMetadata = !environment.IsDevelopment();
     }
 }
