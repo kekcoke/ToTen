@@ -13,5 +13,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ToTen.Api.IntegrationTests/ToTen.Api.IntegrationTests.csproj" />
+    <Project Path="tests/ToTen.Worker.Tests/ToTen.Worker.Tests.csproj" />
   </Folder>
 </Solution>
