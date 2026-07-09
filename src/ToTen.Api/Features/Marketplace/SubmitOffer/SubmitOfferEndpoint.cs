@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
+using ToTen.Api.Shared.RateLimiting;
 using System.Security.Claims;
 
 namespace ToTen.Api.Features.Marketplace.SubmitOffer;
@@ -46,6 +47,7 @@ public static class SubmitOfferEndpoint
         })
         .WithName("SubmitOffer")
         .WithTags("Marketplace")
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .RequireRateLimiting(RateLimitingConfiguration.StrictPolicy);
     }
 }

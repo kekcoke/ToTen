@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
+using ToTen.Api.Shared.RateLimiting;
 using Rebus.Bus;
 using ToTen.Contracts;
 using System.Security.Claims;
@@ -57,6 +58,7 @@ public static class CreateListingEndpoint
         })
         .WithName("CreateListing")
         .WithTags("Marketplace")
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .RequireRateLimiting(RateLimitingConfiguration.StrictPolicy);
     }
 }

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
+using ToTen.Api.Shared.RateLimiting;
 
 namespace ToTen.Api.Features.Items.CreateItem;
 
@@ -40,6 +41,7 @@ public static class CreateItemEndpoint
         .WithName("CreateItem")
         .WithTags("Items")
         .Produces<InventoryItem>(StatusCodes.Status201Created)
-        .Produces(StatusCodes.Status401Unauthorized);
+        .Produces(StatusCodes.Status401Unauthorized)
+        .RequireRateLimiting(RateLimitingConfiguration.StrictPolicy);
     }
 }

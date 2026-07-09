@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
+using ToTen.Api.Shared.RateLimiting;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 
@@ -37,7 +38,8 @@ public static class MembershipEndpoints
             await context.SaveChangesAsync();
 
             return Results.Ok(new MembershipResponse(membership.OrganizationId, Guid.Parse(membership.UserId), membership.Role));
-        });
+        })
+        .RequireRateLimiting(RateLimitingConfiguration.StrictPolicy);
 
         group.MapDelete("/{userId:guid}", async (Guid orgId, Guid userId, ToTenContext context, IIdentityManager identityManager, ClaimsPrincipal principal) =>
         {

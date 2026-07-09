@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
+using ToTen.Api.Shared.RateLimiting;
 
 namespace ToTen.Api.Features.Marketplace.Search;
 
@@ -104,6 +105,7 @@ public static class SearchListingsEndpoint
             return Results.Ok(new SearchListingsResponse(listings, totalCount));
         })
         .WithName("SearchListings")
-        .WithTags("Marketplace");
+        .WithTags("Marketplace")
+        .RequireRateLimiting(RateLimitingConfiguration.StrictPolicy);
     }
 }

@@ -1,5 +1,6 @@
 using Azure.Identity;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.RateLimiting;
 using ToTen.Api.Data;
 using ToTen.Api.Features.Items;
 using ToTen.Api.Shared.Cors;
@@ -18,6 +19,7 @@ using ToTen.Api.Shared.Authorization;
 using ToTen.Api.Shared.Infrastructure;
 using ToTen.Api.Shared.Identity;
 using ToTen.Api.Shared.Messaging;
+using ToTen.Api.Shared.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +73,8 @@ builder.AddToTenCors();
 
 builder.Services.AddValidation();
 
+builder.Services.AddToTenRateLimiting();
+
 // Azure Blob Storage client
 builder.AddAzureBlobServiceClient("blobs");
 
@@ -81,6 +85,8 @@ builder.Services.AddScoped<IQRCodeService, QRCodeService>();
 var app = builder.Build();
 
 app.UseCors();
+
+app.UseRateLimiter();
 
 app.MapDefaultEndpoints();
 app.MapInventoryItems();
