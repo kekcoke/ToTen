@@ -46,6 +46,55 @@ public class ItemsEndpointsTests(ToTenWebApplicationFactory factory) : IClassFix
     }
 
     [Fact]
+    public async Task GetItems_RespectsPagination()
+    {
+        var categoryId = _factory.GetSeedCategoryId();
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ToTenContext>();
+
+        context.InventoryItems.AddRange(
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Page Item 1",
+                Description = "Description",
+                CategoryId = categoryId,
+                OwnerId = _factory.DefaultTestUserId.ToString(),
+                LastUpdatedBy = "test@example.com"
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Page Item 2",
+                Description = "Description",
+                CategoryId = categoryId,
+                OwnerId = _factory.DefaultTestUserId.ToString(),
+                LastUpdatedBy = "test@example.com"
+            },
+            new InventoryItem
+            {
+                Id = Guid.NewGuid(),
+                Name = "Page Item 3",
+                Description = "Description",
+                CategoryId = categoryId,
+                OwnerId = _factory.DefaultTestUserId.ToString(),
+                LastUpdatedBy = "test@example.com"
+            });
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var response = await _client.GetAsync("/items?page=1&pageSize=1", TestContext.Current.CancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<IEnumerable<GetItemResponse>>(TestContext.Current.CancellationToken);
+        Assert.NotNull(result);
+        Assert.Single(result);
+
+        Assert.True(response.Headers.TryGetValues("X-Total-Count", out var totalCountValues));
+        var totalCount = int.Parse(totalCountValues.Single());
+        Assert.True(totalCount >= 3);
+    }
+
+    [Fact]
     public async Task GetItem_ReturnsOk()
     {
         var categoryId = _factory.GetSeedCategoryId();
