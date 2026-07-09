@@ -67,3 +67,33 @@
 | **Keep, unpublished** (current state) | No functionality change; nothing forecloses future use; consistent with the 1.9 precedent | Dead code lingers until a decision is made |
 
 **Decision criteria:** Is there a concrete near-term need — an audit trail, or the transaction/purchase-history endpoint the CRUD matrix (audit §4) already flags as missing — that would consume these events? If yes, wire them up as part of that feature work rather than in isolation. If no, delete them in a future cleanup pass.
+
+---
+
+## 3.5 — DAST (ZAP) scan timing
+
+**Status:** Documented as a detective-only control in this MR (comment added in `.github/workflows/azure-dev.yml`, `CLAUDE.md` CI/CD table updated). The staging-slot alternative below is not implemented — it's new infrastructure, not a mechanical fix.
+
+**The problem:** `dast-scan` (`.github/workflows/azure-dev.yml`) runs `needs: [deploy, terraform]` — i.e. after `deploy` has already updated the live production Container Apps via `az containerapp update`. `fail_action: true` does fail the workflow/alert on WARN-NEW findings, but nothing downstream depends on `dast-scan`, and there's no rollback step — a ZAP failure cannot prevent or undo the release that's already serving traffic.
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Staging slot / traffic-split scan** — provision a second Container Apps revision or environment, deploy there first, scan it, then promote | Would make DAST an actual release gate | New infrastructure: Container Apps modules currently use `revision_mode = "Single"` (no traffic-split); `terraform/envs/` has no `staging.tfvars`; real work, not a config tweak |
+| **Accept as detective-only, document it** (current state) | Zero new infrastructure; matches what the pipeline already does today | DAST findings are only ever discovered after production is already running the new code |
+
+**Decision criteria:** Is a true pre-prod release gate worth standing up a staging environment (new Terraform module work, a second ACA revision or environment, CI changes to deploy-then-promote)? If not, the current detective-only posture is fine as-is — just keep it documented so nobody mistakes `fail_action: true` for a release gate.
+
+---
+
+## 3.6 — `ToTen.Contracts` NuGet versioning
+
+**Status:** Skipped in this MR — the audit's own fix direction is conditioned on "once an external consumer... exists," and none does yet.
+
+**The problem:** `.github/workflows/azure-dev.yml`'s `nuget-publish` job packs `ToTen.Contracts` with `PackageVersion=1.0.${{ github.run_number }}` on every merge to `main` — a monotonically increasing build number under a hardcoded `1.0`, with no semver bump logic and no changelog. This is harmless today because nothing outside this repo depends on a published version; there's no compatibility contract to break yet.
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Adopt semver now** (bump rules tied to contract changes, add a changelog) | Ready before it's needed | No consumer exists to validate the versioning scheme against; policy decisions (what counts as breaking? changelog format?) made in a vacuum |
+| **Leave as-is until a consumer exists** (current state) | No process overhead for a package nobody depends on | `ToTen.Contracts` versions remain meaningless as a compatibility signal until this is revisited |
+
+**Decision criteria:** Revisit when the mobile app (or any other consumer) actually takes a dependency on a published `ToTen.Contracts` version — that's the point at which a version bump can break someone, and semver starts meaning something.

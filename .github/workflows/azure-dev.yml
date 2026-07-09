@@ -238,6 +238,11 @@ jobs:
             --image "${{ needs.docker-build-push.outputs.worker_image }}"
 
   # ── 5. DAST — OWASP ZAP baseline against live ACA endpoint ───────────────────
+  # Detective control, not a release gate: this runs after `deploy` has already updated
+  # the live production Container Apps (needs: [deploy, terraform]), so a failure here
+  # can only fail the workflow/alert on-call — it cannot block or roll back the release
+  # that's already serving traffic. No staging slot exists to scan pre-prod instead (see
+  # docs/section-2-flagged-issues.md §3.5 for that alternative and why it's deferred).
   dast-scan:
     runs-on: ubuntu-latest
     needs: [deploy, terraform]
@@ -251,7 +256,7 @@ jobs:
           target: 'https://${{ needs.terraform.outputs.api_fqdn }}'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a'
-          fail_action: true # Changed to true to actually protect releases if critical vulns are found
+          fail_action: true # Fails the workflow/alerts on WARN-NEW findings; does not roll back the already-deployed release
 
   # ── 6. Robot Framework — acceptance tests against live ACA endpoint ─────────────
   robot-tests:
