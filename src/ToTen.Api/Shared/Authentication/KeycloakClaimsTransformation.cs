@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
@@ -37,12 +38,9 @@ public class KeycloakClaimsTransformation(IOptions<AuthOptions> authOptions) : I
             identity.AddClaim(new Claim(ClaimTypes.Email, email.Value));
         }
 
-        foreach (var role in ExtractRoles(identity))
+        foreach (var role in ExtractRoles(identity).Where(role => !identity.HasClaim(ClaimTypes.Role, role)))
         {
-            if (!identity.HasClaim(ClaimTypes.Role, role))
-            {
-                identity.AddClaim(new Claim(ClaimTypes.Role, role));
-            }
+            identity.AddClaim(new Claim(ClaimTypes.Role, role));
         }
 
         return Task.FromResult(principal);
