@@ -1,4 +1,5 @@
 using Rebus.Config;
+using Rebus.Retry.Simple;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,6 +14,7 @@ public static class RebusConfiguration
                 .Transport(t => t.UseAzureServiceBus(
                     configuration.GetConnectionString("ServiceBus"),
                     "ToTen-Api-Queue"))
+                .Options(o => o.RetryStrategy(errorQueueName: "ToTen-Api-Error", maxDeliveryAttempts: 5))
         );
 
         return services;

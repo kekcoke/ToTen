@@ -159,7 +159,7 @@ Two GitHub Actions workflows (`.github/workflows/`):
 | `docker-build-push` | all branches | build always; push images to ACR on `main` only |
 | `terraform` | all branches | plan always; apply on `main`; post plan comment on PR |
 | `deploy` | `main` only | `az containerapp update` for API + Worker |
-| `dast-scan` | `main` only | OWASP ZAP baseline against live API FQDN |
+| `dast-scan` | `main` only | OWASP ZAP baseline against live API FQDN (detective-only, not a release gate — runs after `deploy`; see `docs/section-2-flagged-issues.md`) |
 | `robot-tests` | `main` only | Robot Framework acceptance suite |
 | `performance-test` | `main` only | JMeter baseline load test |
 | `nuget-publish` | `main` only | Pack + push `ToTen.Contracts` to GitHub Packages |

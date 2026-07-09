@@ -61,3 +61,9 @@ variable "terraform_principal_id" {
   type        = string
   description = "Object ID of the principal running Terraform; granted Key Vault Secrets Officer during apply."
 }
+
+variable "allowed_origins" {
+  type        = string
+  default     = ""
+  description = "Semicolon-separated list of allowed CORS origins for the API. Empty until a browser-based (non-mobile) client exists — CORS doesn't gate mobile clients (see docs/architecture-security-audit-2026-07-08.md §5)."
+}
