@@ -65,7 +65,7 @@ resource "azurerm_container_app" "api" {
       }
       env {
         name  = "ASPNETCORE_ENVIRONMENT"
-        value = "Development"
+        value = "Production"
       }
       env {
         name  = "Auth__Authority"
