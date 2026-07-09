@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
@@ -39,17 +40,37 @@ public static class OrganizationEndpoints
             return Results.Created($"/api/organizations/{org.Id}", new OrganizationResponse(org.Id, org.Name, org.Type));
         });
 
-        group.MapGet("/{id:guid}", async (Guid id, ToTenContext context) =>
+        group.MapGet("/{id:guid}", async (Guid id, ToTenContext context, IIdentityManager identityManager, ClaimsPrincipal principal) =>
         {
-            var org = await context.Organizations.FindAsync(id);
-            return org != null ? Results.Ok(new OrganizationResponse(org.Id, org.Name, org.Type)) : Results.NotFound();
-        });
+            var user = identityManager.GetCurrentUser(principal);
+            if (user == null) return Results.Unauthorized();
 
-        group.MapDelete("/{id:guid}", async (Guid id, ToTenContext context) =>
-        {
             var org = await context.Organizations.FindAsync(id);
             if (org == null) return Results.NotFound();
-            
+
+            var isMember = await context.OrganizationMemberships.AnyAsync(m =>
+                m.OrganizationId == id && m.UserId == user.Id.ToString());
+
+            if (!isMember && !user.Roles.Contains("admin") && !user.Roles.Contains("super_admin"))
+                return Results.Forbid();
+
+            return Results.Ok(new OrganizationResponse(org.Id, org.Name, org.Type));
+        });
+
+        group.MapDelete("/{id:guid}", async (Guid id, ToTenContext context, IIdentityManager identityManager, ClaimsPrincipal principal) =>
+        {
+            var user = identityManager.GetCurrentUser(principal);
+            if (user == null) return Results.Unauthorized();
+
+            var org = await context.Organizations.FindAsync(id);
+            if (org == null) return Results.NotFound();
+
+            var isOwner = await context.OrganizationMemberships.AnyAsync(m =>
+                m.OrganizationId == id && m.UserId == user.Id.ToString() && m.Role == "Owner");
+
+            if (!isOwner && !user.Roles.Contains("admin") && !user.Roles.Contains("super_admin"))
+                return Results.Forbid();
+
             context.Organizations.Remove(org);
             await context.SaveChangesAsync();
             return Results.NoContent();
