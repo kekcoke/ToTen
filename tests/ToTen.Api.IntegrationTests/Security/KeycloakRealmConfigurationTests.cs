@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 
 namespace ToTen.Api.IntegrationTests.Security;
@@ -25,6 +26,88 @@ public class KeycloakRealmConfigurationTests
         var realm = LoadRealm();
 
         Assert.True(realm.GetProperty("offlineSessionMaxLifespanEnabled").GetBoolean());
+    }
+
+    // Audit finding 1.8: mobile needs a dedicated public client with PKCE and a pinned
+    // (non-wildcard) native redirect — see docs/section-2-flagged-issues.md.
+    [Fact]
+    public void Realm_MobileClientExists_IsPublicWithPkce()
+    {
+        var client = FindClient("ToTen-mobile");
+
+        Assert.True(client.GetProperty("publicClient").GetBoolean());
+        Assert.True(client.GetProperty("standardFlowEnabled").GetBoolean());
+        Assert.False(client.GetProperty("implicitFlowEnabled").GetBoolean());
+        Assert.False(client.GetProperty("directAccessGrantsEnabled").GetBoolean());
+        Assert.False(client.GetProperty("serviceAccountsEnabled").GetBoolean());
+        Assert.Equal("S256", client.GetProperty("attributes").GetProperty("pkce.code.challenge.method").GetString());
+    }
+
+    [Fact]
+    public void Realm_MobileClientRedirectUri_IsPinnedNotWildcard()
+    {
+        var client = FindClient("ToTen-mobile");
+        var redirectUris = client.GetProperty("redirectUris").EnumerateArray().Select(e => e.GetString() ?? string.Empty).ToArray();
+
+        Assert.Equal(["com.toten.app://auth/callback"], redirectUris);
+        Assert.DoesNotContain(redirectUris, uri => uri.Contains('*'));
+    }
+
+    [Fact]
+    public void Realm_MobileClientHasAudienceScopeByDefault()
+    {
+        var client = FindClient("ToTen-mobile");
+        var defaultScopes = client.GetProperty("defaultClientScopes").EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.Contains("ToTen_api.all", defaultScopes);
+    }
+
+    [Fact]
+    public void Realm_WebBffClientExists_IsConfidentialWithPkce()
+    {
+        var client = FindClient("ToTen-web-bff");
+
+        Assert.False(client.GetProperty("publicClient").GetBoolean());
+        Assert.Equal("client-secret", client.GetProperty("clientAuthenticatorType").GetString());
+        Assert.True(client.GetProperty("standardFlowEnabled").GetBoolean());
+        Assert.False(client.GetProperty("implicitFlowEnabled").GetBoolean());
+        Assert.False(client.GetProperty("directAccessGrantsEnabled").GetBoolean());
+        Assert.Equal("S256", client.GetProperty("attributes").GetProperty("pkce.code.challenge.method").GetString());
+        Assert.False(string.IsNullOrEmpty(client.GetProperty("secret").GetString()));
+    }
+
+    [Fact]
+    public void Realm_ApiClientIsBearerOnly()
+    {
+        var client = FindClient("ToTen-api");
+
+        Assert.True(client.GetProperty("bearerOnly").GetBoolean());
+        Assert.False(client.GetProperty("standardFlowEnabled").GetBoolean());
+        Assert.False(client.GetProperty("implicitFlowEnabled").GetBoolean());
+        Assert.False(client.GetProperty("directAccessGrantsEnabled").GetBoolean());
+        Assert.False(client.GetProperty("serviceAccountsEnabled").GetBoolean());
+    }
+
+    [Fact]
+    public void Realm_SwaggerClientEnforcesPkce()
+    {
+        var client = FindClient("ToTen-api-swagger");
+
+        Assert.Equal("S256", client.GetProperty("attributes").GetProperty("pkce.code.challenge.method").GetString());
+    }
+
+    private static JsonElement FindClient(string clientId)
+    {
+        var realm = LoadRealm();
+        foreach (var client in realm.GetProperty("clients").EnumerateArray())
+        {
+            if (client.GetProperty("clientId").GetString() == clientId)
+            {
+                return client;
+            }
+        }
+
+        throw new InvalidOperationException($"Client '{clientId}' not found in realm export.");
     }
 
     private static JsonElement LoadRealm()
