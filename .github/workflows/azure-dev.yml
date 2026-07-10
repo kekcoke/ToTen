@@ -81,8 +81,17 @@ jobs:
       - name: Build Worker image
         run: docker build -t ${{ steps.tags.outputs.worker_image }} -f docker/worker/Dockerfile .
 
+      # Bakes the real web-bff client secret and redirect URI into the realm import
+      # so the deployed Keycloak matches what ToTen.Api is given. Secret must equal
+      # the GitHub secret used for the terraform -var below; WEB_BFF_REDIRECT_URI is
+      # a repo variable (not a secret) left unset until the API's real FQDN is known
+      # post-first-deploy — same bootstrap posture as ACR_NAME/allowed_origins.
       - name: Build Keycloak image
-        run: docker build -t ${{ steps.tags.outputs.keycloak_image }} -f docker/keycloak/Dockerfile .
+        run: |
+          docker build -t ${{ steps.tags.outputs.keycloak_image }} \
+            --build-arg KEYCLOAK_WEB_BFF_CLIENT_SECRET="${{ secrets.TF_VAR_KEYCLOAK_WEB_BFF_CLIENT_SECRET }}" \
+            --build-arg KEYCLOAK_WEB_BFF_REDIRECT_URI="${{ vars.WEB_BFF_REDIRECT_URI }}" \
+            -f docker/keycloak/Dockerfile .
 
       # Audit finding 2.4: API/Worker images must run as a non-root user. Fails
       # the build if a future change reintroduces a root container.
@@ -175,6 +184,8 @@ jobs:
             -var-file="envs/prod.tfvars" \
             -var="postgres_admin_password=${{ secrets.TF_VAR_POSTGRES_ADMIN_PASSWORD }}" \
             -var="keycloak_admin_password=${{ secrets.TF_VAR_KEYCLOAK_ADMIN_PASSWORD }}" \
+            -var="keycloak_web_bff_client_secret=${{ secrets.TF_VAR_KEYCLOAK_WEB_BFF_CLIENT_SECRET }}" \
+            -var="keycloak_web_bff_redirect_uri=${{ vars.WEB_BFF_REDIRECT_URI }}" \
             -var="api_image=${{ needs.docker-build-push.outputs.api_image }}" \
             -var="worker_image=${{ needs.docker-build-push.outputs.worker_image }}" \
             -out=tfplan \

@@ -21,6 +21,12 @@ variable "keycloak_admin_password" {
   description = "Keycloak administrator password."
 }
 
+variable "keycloak_web_bff_client_secret" {
+  type        = string
+  sensitive   = true
+  description = "Client secret for the ToTen-web-bff confidential client, shared between the deployed Keycloak image (baked in at build time, see docker/keycloak/Dockerfile) and ToTen.Api's Auth:WebBff:ClientSecret config."
+}
+
 variable "allowed_cidr_ranges" {
   type        = list(string)
   default     = []
@@ -66,4 +72,10 @@ variable "allowed_origins" {
   type        = string
   default     = ""
   description = "Semicolon-separated list of allowed CORS origins for the API. Empty until a browser-based (non-mobile) client exists — CORS doesn't gate mobile clients (see docs/architecture-security-audit-2026-07-08.md §5)."
+}
+
+variable "keycloak_web_bff_redirect_uri" {
+  type        = string
+  default     = ""
+  description = "Full callback URL for the web BFF (e.g. https://<api_fqdn>/auth/callback). Empty until the API's real deployed FQDN is known post-first-deploy. Must match the same value baked into the ToTen-web-bff Keycloak client via docker/keycloak/Dockerfile's KEYCLOAK_WEB_BFF_REDIRECT_URI build-arg."
 }

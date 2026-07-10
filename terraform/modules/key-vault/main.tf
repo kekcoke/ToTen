@@ -39,6 +39,13 @@ resource "azurerm_key_vault_secret" "keycloak_password" {
   depends_on   = [azurerm_role_assignment.tf_secrets_officer]
 }
 
+resource "azurerm_key_vault_secret" "web_bff_client_secret" {
+  name         = "web-bff-client-secret"
+  value        = var.keycloak_web_bff_client_secret
+  key_vault_id = azurerm_key_vault.main.id
+  depends_on   = [azurerm_role_assignment.tf_secrets_officer]
+}
+
 resource "azurerm_key_vault_secret" "servicebus_conn_string" {
   name         = "servicebus-connection-string"
   value        = var.servicebus_connection_string

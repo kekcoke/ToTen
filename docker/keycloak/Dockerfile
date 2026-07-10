@@ -1,9 +1,21 @@
 FROM alpine:3.20 AS realm-prep
+ARG KEYCLOAK_WEB_BFF_CLIENT_SECRET
+ARG KEYCLOAK_WEB_BFF_REDIRECT_URI
 RUN apk add --no-cache jq
 COPY src/ToTen.AppHost/realms/ToTen-realm.json /tmp/realm.json
 # The realm export ships a seeded demo/demo user for local dev convenience -
 # strip it here so the credential never lands in the production image.
-RUN jq 'del(.users[] | select(.username == "demo"))' /tmp/realm.json > /tmp/realm.prod.json
+# The ToTen-web-bff client also ships a fixed dev-only secret and a localhost
+# redirect URI (matching AppHost.cs's local Aspire parameter and the dev realm) -
+# replace both with the real deployed values at image build time. Redirect URI is
+# blank until the API's real FQDN is known post-first-deploy (see
+# terraform/variables.tf's keycloak_web_bff_redirect_uri) - fall back to the dev
+# value so an early/bootstrap image build still produces valid JSON.
+RUN jq \
+    --arg secret "${KEYCLOAK_WEB_BFF_CLIENT_SECRET:-dev-web-bff-secret-change-me-9f8e7d6c5b4a}" \
+    --arg redirect "${KEYCLOAK_WEB_BFF_REDIRECT_URI:-http://localhost:5082/auth/callback}" \
+    '(.clients[] | select(.clientId == "ToTen-web-bff") | .secret) = $secret | (.clients[] | select(.clientId == "ToTen-web-bff") | .redirectUris) = [$redirect] | (.clients[] | select(.clientId == "ToTen-web-bff") | .webOrigins) = [($redirect | sub("/auth/callback$"; ""))] | del(.users[] | select(.username == "demo"))' \
+    /tmp/realm.json > /tmp/realm.prod.json
 
 FROM quay.io/keycloak/keycloak:latest
 
