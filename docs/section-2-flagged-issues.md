@@ -8,16 +8,18 @@
 
 ## 1.8 — No Keycloak client ready for a mobile app
 
-**Status:** Open since the Section 1 MR (#19); never previously given a dedicated write-up.
+**Status:** Resolved. Implemented **both** options from the original decision table below, applied to the two client types that actually need them — not a choice between them. Mobile (React Native) uses Authorization Code + PKCE directly against a new public `ToTen-mobile` client (Option 1), matching RFC 8252's recommendation for installed apps with OS-backed secure storage. The web frontend uses a server-side BFF (Option 2) via a new `Features/Auth` slice in `ToTen.Api` and a new confidential `ToTen-web-bff` client — the browser never sees raw tokens, only an encrypted `HttpOnly` session cookie. `ToTen-api` itself is now `bearerOnly: true` (a resource identity, not an OIDC participant) instead of the previous every-grant-disabled/wildcard-redirect dead config. See `src/ToTen.AppHost/realms/ToTen-realm.json`, `src/ToTen.Api/Features/Auth/`, `src/ToTen.Api/Shared/Identity/IKeycloakTokenClient.cs`, and `tests/ToTen.Api.IntegrationTests/Security/{KeycloakRealmConfigurationTests,WebBffAuthFlowTests}.cs`.
 
-**The problem:** `ToTen-api`, the only application-owned Keycloak client, has every OAuth grant disabled and a wildcard `redirectUris: ["/*"]`. No client in the realm is configured as a public client with PKCE and a pinned native redirect URI. There is currently no way for a mobile app to authenticate against this backend using a standard OIDC mobile flow.
+**The problem (as originally scoped):** `ToTen-api`, the only application-owned Keycloak client, has every OAuth grant disabled and a wildcard `redirectUris: ["/*"]`. No client in the realm is configured as a public client with PKCE and a pinned native redirect URI. There is currently no way for a mobile app to authenticate against this backend using a standard OIDC mobile flow.
 
 | Option | Pros | Cons |
 |---|---|---|
 | **Authorization Code + PKCE**, dedicated public client, `pkce.code.challenge.method: S256`, redirect pinned to a custom scheme (e.g. `com.toten.app://auth/callback`) | Standard mobile OIDC pattern; mobile talks to Keycloak directly, no new backend infra; matches what `ToTen-api-swagger` already does for the web/Swagger flow | Client secrets/token handling live on-device; Keycloak realm config must be hardened (redirect URI allowlist, no wildcard) before this is safe |
 | **BFF / token-proxy layer** — API issues its own session tokens, mobile never talks to Keycloak directly | Keeps all OIDC logic server-side; smaller attack surface on-device | New infrastructure that doesn't exist today; adds a session-management layer and a new class of token to secure/rotate |
 
-**Decision criteria:** Does the team want OIDC logic on-device (simpler, standard, but exposes PKCE flow to the client) or fully server-side (more secure by default, but is new infrastructure that has to be built and maintained before any mobile auth screen can be written)? This blocks all mobile auth UI work per the audit's own sequencing (§6).
+**Decision criteria (as originally scoped):** Does the team want OIDC logic on-device (simpler, standard, but exposes PKCE flow to the client) or fully server-side (more secure by default, but is new infrastructure that has to be built and maintained before any mobile auth screen can be written)? This blocks all mobile auth UI work per the audit's own sequencing (§6).
+
+**Why both, not one:** mobile and web are different threat models, not a single client-type decision. A native app has an OS keychain, so exposing it to a PKCE flow (Option 1) is the standard, secure pattern (RFC 8252) — a BFF for mobile would be new infrastructure solving a problem mobile doesn't have. A browser has no equivalent secure storage — anything JS-readable is XSS-exfiltratable — so the BFF (Option 2) is the correct hardening for web, not an alternative to Option 1. CSRF protection (`Shared/Authorization/CsrfValidationFilter.cs`) was added as a necessary consequence of introducing cookie auth, applied scheme-conditionally so mobile's bearer path is unaffected.
 
 ---
 

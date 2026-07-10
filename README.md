@@ -68,6 +68,8 @@ Once the application is running, you can test the API using:
 
 The template uses Keycloak for authentication. Once the application is running:
 
+> Mobile (React Native, native PKCE) and web (server-side BFF with a cookie session) each have a dedicated Keycloak client and flow — see [`AUTH-ARCHITECTURE.md`](AUTH-ARCHITECTURE.md) for the full before/after diagrams and manual setup/reprovisioning steps. The walkthrough below covers the Swagger UI dev flow, which is unchanged.
+
 #### Testing API with Swagger UI
 
 1. **Access Swagger UI** from the Aspire Dashboard by clicking the **API Docs** link
@@ -361,19 +363,20 @@ This template follows **Vertical Slice Architecture** principles, organizing cod
 
 ```mermaid
 graph TB
-    Client([Client / Browser])
+    Client([Web Browser])
+    Mobile(["React Native App\n(native PKCE, direct to Keycloak)"])
 
     subgraph azure["Azure — Production"]
         subgraph ACA["Azure Container Apps Environment"]
-            API["ToTen.Api\nASP.NET Core Minimal API"]
+            API["ToTen.Api\nASP.NET Core Minimal API\n+ Features/Auth (web BFF broker)"]
             Worker["ToTen.Worker\n.NET Worker Service"]
-            KC["Keycloak\nOIDC / JWT Auth"]
+            KC["Keycloak\nToTen-mobile (PKCE) · ToTen-web-bff (BFF)\nToTen-api (bearerOnly)"]
         end
         PG[("Azure PostgreSQL\nFlexible Server v17")]
         SB["Azure Service Bus\nitems-events · Api-Queue · Worker-Queue"]
         STOR["Azure Blob Storage\nQR Codes / Assets"]
         SR["Azure SignalR\nReal-time Chat"]
-        KV["Azure Key Vault\n6 Secrets"]
+        KV["Azure Key Vault\n7 Secrets"]
         ACR["Azure Container Registry"]
         AI["Application Insights\n+ Log Analytics"]
     end
@@ -386,9 +389,11 @@ graph TB
         KC_L["Keycloak :8080"]
     end
 
-    Client -->|HTTPS| API
+    Client -->|"HTTPS + __Host-ToTen-Session cookie"| API
     Client -->|WebSocket| SR
-    API -->|JWT auth| KC
+    Mobile -->|"PKCE ⇄ tokens"| KC
+    Mobile -->|Bearer JWT| API
+    API -->|"Bearer validation + BFF token exchange (PKCE)"| KC
     API -->|EF Core| PG
     API -->|Publish events| SB
     API -->|Blob upload| STOR
@@ -401,6 +406,8 @@ graph TB
     ACR -->|Pull images| ACA
     AppHost --- PG_L & SB_L & AZ_L & KC_L
 ```
+
+See [`AUTH-ARCHITECTURE.md`](AUTH-ARCHITECTURE.md) for the full mobile/web auth sequence diagrams and setup steps.
 
 ### Feature Organization
 
