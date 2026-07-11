@@ -25,7 +25,7 @@
 
 ## 2.6 — Worker consumers are wired but do nothing
 
-**Status:** Skipped in this MR — open product decision, no side-effect infrastructure exists to hook into yet.
+**Status:** Resolved for `ItemEventsHandler`/`ManifestCreatedHandler` — implemented the **audit trail table** option from the decision table below. Worker gained its own Postgres access (`WorkerDbContext`, a Worker-owned migration history distinct from `ToTenContext`'s so the two independently-migrated DbContexts sharing the `ToTen` database don't collide) and now writes one immutable `AuditLogEntry` row per `ItemMovedEvent`/`ItemListingEvent`/`ItemTransferredEvent`/`ItemDeletedEvent`/`ManifestCreatedEvent`, in addition to the existing `LogInformation` calls. `NotificationHandler`/`SendNotificationEvent` was intentionally left untouched — it already performs real work (sends notifications) and was never part of this finding. See `src/ToTen.Worker/Data/`, `src/ToTen.Worker/Consumers/{ItemEventsConsumer,ManifestCreatedConsumer}.cs`, and `tests/ToTen.Worker.Tests/Consumers/{ItemEventsHandlerTests,ManifestCreatedHandlerTests}.cs`. This closes the "audit trail vs. search index vs. notification vs. leave as log-only" decision below in favor of audit trail, per the decision criteria — it has no dependency on unfinished work (unlike the notification option's dependency on 1.9's real `INotifier`) and is directly useful for a future item-history view. See the new flagged item at the end of this document for the FK/referential-integrity follow-up this table introduces.
 
 **The problem:** `ItemEventsHandler` and `ManifestCreatedHandler` are genuinely triggered by real Rebus events (`ItemMovedEvent`, `ItemListingEvent`, `ItemTransferredEvent`, `ItemDeletedEvent`, `ManifestCreatedEvent`) but every handler body is a single `LogInformation` call — no DB write, no side effect. `ToTen.Worker` has zero DbContext/EF Core reference today (confirmed: no `ToTenContext` or any other data-access abstraction is available to it), so any real handler body is new infrastructure, not a bug fix.
 
@@ -142,3 +142,19 @@
 | `Organization.DateDeleted` — modeled soft-delete column, never used; all deletes are hard deletes | — | Switching hard-delete → soft-delete changes query semantics at every existing read call site (list/get queries would need a `DateDeleted == null` filter added everywhere), not a mechanical toggle. |
 
 **Decision criteria:** Prioritize by what's blocking real usage, not by closing every cell uniformly. Memberships (already the reference-pattern domain) and Marketplace Offer reject/counter are the smallest, most self-contained gaps if a next pass wants to pick one. Everything touching Communications, Marketplace Transaction/ItemLineage, or Users should be scoped together with their existing flagged items (§2.3, §2.7) rather than in isolation.
+
+---
+
+## 2.8 — Item domain has no cross-domain DB relationship story
+
+**Status:** New, scoped out of the §2.6 MR — flagged here rather than left as an unstated implication.
+
+**The problem:** §2.6's audit-trail fix gave `ToTen.Worker` its own `WorkerDbContext` and a new `AuditLogEntries` table with `ItemId`/`ManifestId` columns — but they're plain `Guid?` columns with no foreign key back to `ToTen.Api`'s `InventoryItem`/`Manifest` tables, because `ToTen.Worker` deliberately doesn't share Api's entity graph or `DbContext` (see §2.6's resolution note). This is a direct consequence of Worker and Api being separate deployable services with separate schemas/migration histories against the same physical database — not a bug in this MR, but it means Item-domain data now has a real consumer outside `ToTen.Api` with zero referential-integrity enforcement between them. The same shape of problem already exists implicitly wherever Item-domain data crosses a service or schema boundary — this is the first place it's been made concrete enough to name.
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Accept eventual-consistency, no FK** (current state) | Zero additional work; matches how services normally integrate across a network boundary | `AuditLogEntries.ItemId`/`ManifestId` can silently reference an Item/Manifest that's since been deleted or never existed (e.g. bad producer data); nothing catches this at write time |
+| **Worker validates IDs against Api** (a synchronous call-back, or a periodic reconciliation job) | Catches bad references close to write time | New coupling between Worker and Api at runtime; adds latency/failure modes to every event handler for a table that's informational, not a ledger of record |
+| **Shared read model / shared schema for Item-domain identifiers** | Would let a real FK exist, and could also serve future read endpoints (§2.7, §4's Marketplace Transaction/ItemLineage gap) | Significant new infrastructure — either a distinct "Item identifiers" table both DbContexts genuinely share, or a change in how Worker and Api relate to the same database; overlaps with whatever §2.7's "wire up dead event records" decision eventually needs |
+
+**Decision criteria:** Does the Item domain need real FK/relationship enforcement across service boundaries before mobile launch, or is "informational, eventually-consistent, no FK" the accepted long-term posture for Worker-owned (and any future non-Api-owned) tables that reference Item-domain IDs? If a concrete need shows up — e.g. the audit trail becoming user-facing history, or §2.7's dead event records getting wired up — revisit this alongside that work rather than solving it speculatively now.
