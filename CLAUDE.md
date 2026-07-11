@@ -116,7 +116,14 @@ The Api exposes a separate health endpoint on port 8081 (`/health/alive`, `/heal
 
 ### Authentication
 
-Keycloak handles JWT auth. The realm is `ToTen`. Local credentials: `demo`/`demo` (user), `admin`/`admin` (admin). After Aspire starts, the Swagger UI (`/swagger`) is accessible via the Aspire Dashboard "API Docs" link — use the Authorize button for OAuth2 flow.
+Keycloak handles auth. The realm is `ToTen`. Local credentials: `demo`/`demo` (user), `admin`/`admin` (admin). After Aspire starts, the Swagger UI (`/swagger`) is accessible via the Aspire Dashboard "API Docs" link — use the Authorize button for OAuth2 flow (`ToTen-api-swagger` client, PKCE-enforced).
+
+Two OIDC clients back the two real client types (audit finding 1.8, `docs/section-2-flagged-issues.md`):
+
+- **Mobile (React Native):** Authorization Code + PKCE directly against Keycloak using the public `ToTen-mobile` client (`redirectUris: ["com.toten.app://auth/callback"]`). Sends the resulting JWT as a bearer token — identical to every other API client on the request-validation side (`JwtBearerOptionsSetup`, `KeycloakClaimsTransformation`).
+- **Web:** a server-side Backend-For-Frontend broker lives in `src/ToTen.Api/Features/Auth/` (`AuthEndpoints.cs`) using the confidential `ToTen-web-bff` client. `GET /auth/login` redirects to Keycloak with a PKCE challenge; `GET /auth/callback` exchanges the code via `IKeycloakTokenClient` and issues an encrypted `__Host-ToTen-Session` cookie (`Cookies` auth scheme) — the browser never sees raw tokens. `POST /auth/logout` and `GET /auth/me`/`GET /auth/csrf` round out the slice.
+
+Both schemes are registered under a single default "smart" policy scheme in `Program.cs` that forwards to `Bearer` or `Cookies` based on whether an `Authorization` header is present, so every existing endpoint's `RequireAuthorization(...)`/`[Authorize(Policy = ...)]` call works unmodified for either caller type. Cookie-authenticated mutating requests (POST/PUT/PATCH/DELETE) require an `X-CSRF-Token` header, validated by `Shared/Authorization/CsrfValidationFilter.cs` (mobile's bearer callers are exempt — no ambient credential to forge). `ToTen-api` is now `bearerOnly: true` (a resource identity, not an OIDC flow participant).
 
 ### Integration Tests
 
@@ -139,7 +146,7 @@ IaC lives in `terraform/`. State is stored in Azure Blob Storage (`totentfstate`
 | `storage` | Storage Account (LRS), blob container `blobs` |
 | `registry` | Container Registry (Standard), AcrPull role assignment |
 | `signalr` | SignalR Service (Standard_S1) |
-| `key-vault` | Key Vault, 6 secrets, 2 role assignments |
+| `key-vault` | Key Vault, 7 secrets, 2 role assignments |
 | `keycloak` | Container App from custom ACR image |
 | `apps` | API + Worker Container Apps, env vars wired from all above modules |
 

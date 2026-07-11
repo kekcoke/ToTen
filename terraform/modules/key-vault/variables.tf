@@ -25,6 +25,11 @@ variable "keycloak_admin_password" {
   sensitive = true
 }
 
+variable "keycloak_web_bff_client_secret" {
+  type      = string
+  sensitive = true
+}
+
 variable "servicebus_connection_string" {
   type      = string
   sensitive = true

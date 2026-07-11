@@ -22,7 +22,7 @@ public static class CorsExtensions
                         policy.WithOrigins(allowedOrigins);
                     }
 
-                    policy.WithHeaders(HeaderNames.Authorization, HeaderNames.ContentType)
+                    policy.WithHeaders(HeaderNames.Authorization, HeaderNames.ContentType, "X-CSRF-Token")
                           .AllowAnyMethod();
                 });
         });

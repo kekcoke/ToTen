@@ -1,7 +1,10 @@
 using Azure.Identity;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using ToTen.Api.Data;
+using ToTen.Api.Features.Auth;
 using ToTen.Api.Features.Items;
 using ToTen.Api.Shared.Cors;
 using ToTen.Api.Shared.ErrorHandling;
@@ -45,15 +48,51 @@ builder.Services.AddOptions<AuthOptions>()
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
 
+// Not ValidateOnStart: unset until the web BFF's real deployed redirect URI is known
+// (see terraform/variables.tf's keycloak_web_bff_redirect_uri) — mobile's bearer path
+// must keep working even before the web BFF is fully configured. Validated lazily on
+// first use by whichever Features/Auth endpoint actually needs it.
+builder.Services.AddOptions<WebBffOptions>()
+                .Bind(builder.Configuration.GetSection(WebBffOptions.SectionName))
+                .ValidateDataAnnotations();
+
 builder.Services.AddOptions<StorageOptions>()
                 .Bind(builder.Configuration.GetSection(StorageOptions.SectionName));
 
 // Register the JWT Bearer options configurator first
 builder.Services.ConfigureOptions<JwtBearerOptionsSetup>();
 
-// Then add the authentication services
-builder.Services.AddAuthentication()
-                .AddJwtBearer();
+// Default "smart" policy scheme forwards to Bearer (mobile — Authorization header present)
+// or Cookies (web BFF — no header, relies on the session cookie). Existing endpoints'
+// RequireAuthorization(...)/[Authorize(Policy = ...)] calls need no change: they evaluate
+// against whichever principal the policy scheme forwarded to.
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = "smart";
+    options.DefaultChallengeScheme = "smart";
+})
+.AddPolicyScheme("smart", "Bearer or Cookie", options =>
+{
+    options.ForwardDefaultSelector = context =>
+        context.Request.Headers.ContainsKey("Authorization")
+            ? JwtBearerDefaults.AuthenticationScheme
+            : CookieAuthenticationDefaults.AuthenticationScheme;
+})
+.AddJwtBearer()
+.AddCookie(options =>
+{
+    options.Cookie.Name = "__Host-ToTen-Session";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax; // Strict would break the top-level redirect back from Keycloak's callback
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30); // mirrors the realm's ssoSessionIdleTimeout (1800s)
+    options.SlidingExpiration = true;
+    options.Events.OnValidatePrincipal = CookieTokenRefreshEvents.RefreshIfNeededAsync;
+    options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; }; // JSON API — no HTML login page to redirect to
+    options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; };
+});
+
+builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-Token");
 
 // Flattens Keycloak's nested realm_access/resource_access role claims and
 // raw sub/email claims into the ClaimTypes.* shape KeycloakIdentityManager reads
@@ -91,15 +130,26 @@ app.UseCors();
 
 app.UseRateLimiter();
 
+app.UseAntiforgery();
+
+// CsrfValidationFilter applies globally to every endpoint mapped through this group (not
+// per-endpoint) so existing Features/*/*.cs registrations need no individual changes. It only
+// acts on mutating requests authenticated via the Cookies scheme, so mobile's bearer callers
+// and every GET endpoint are unaffected. SignalR hubs are mapped outside this group — they
+// use their own query-string bearer token pattern, unrelated to cookie CSRF.
 app.MapDefaultEndpoints();
-app.MapInventoryItems();
-app.MapCategories();
-app.MapStorageEndpoints();
-app.MapManifestEndpoints();
-app.MapMarketplaceEndpoints();
-app.MapOrganizationEndpoints();
-app.MapMembershipEndpoints();
-app.MapUserEndpoints();
+
+var routes = app.MapGroup(string.Empty).AddEndpointFilter<CsrfValidationFilter>();
+
+routes.MapInventoryItems();
+routes.MapCategories();
+routes.MapStorageEndpoints();
+routes.MapManifestEndpoints();
+routes.MapMarketplaceEndpoints();
+routes.MapOrganizationEndpoints();
+routes.MapMembershipEndpoints();
+routes.MapUserEndpoints();
+routes.MapAuthEndpoints();
 app.MapToTenHubs();
 
 app.UseHttpLogging();

@@ -40,6 +40,11 @@ var storage = builder.AddAzureStorage("storage")
 var blobs = storage.AddBlobs("blobs");
 
 var keycloakPassword = builder.AddParameter("KeycloakPassword", secret: true, value: "admin");
+// Must match the ToTen-web-bff client's baked-in secret in ToTen-realm.json — the realm is
+// baked into the Keycloak image at build time (see comment below), not live-imported, so this
+// dev value and the realm JSON's literal secret have to be kept in sync by hand.
+var webBffClientSecret = builder.AddParameter(
+    "ToTenWebBffClientSecret", secret: true, value: "dev-web-bff-secret-change-me-9f8e7d6c5b4a");
 int? keycloakPort = builder.ExecutionContext.IsRunMode ? 8080 : null;
 var keycloak = builder.AddKeycloak("keycloak", adminPassword: keycloakPassword, port: keycloakPort)
                       .WithLifetime(ContainerLifetime.Persistent)
@@ -87,6 +92,10 @@ var api = builder.AddProject<ToTen_Api>("ToTen-api")
             .WaitFor(blobs)
             .WithEnvironment("Auth__Authority", keycloakAuthority)
             .WithEnvironment("SWAGGERUI_CLIENTID", builder.Configuration["SwaggerUI:ClientId"])
+            .WithEnvironment("Auth__WebBff__ClientId", "ToTen-web-bff")
+            .WithEnvironment("Auth__WebBff__ClientSecret", webBffClientSecret)
+            // Matches the ToTen-web-bff client's redirectUris entry in ToTen-realm.json.
+            .WithEnvironment("Auth__WebBff__RedirectUri", "http://localhost:5082/auth/callback")
             .WaitFor(keycloak)
             .WithUrls(context =>
             {

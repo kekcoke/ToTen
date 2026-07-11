@@ -105,7 +105,7 @@ check_providers() {
 
 check_secrets_tfvars() {
   local secrets="$TF_DIR/envs/secrets.tfvars"
-  [[ -f "$secrets" ]] || die "Missing $secrets.\nCreate it with:\n  postgres_admin_password = \"<pw>\"\n  keycloak_admin_password = \"<pw>\"\n  api_image    = \"${ACR_NAME}.azurecr.io/api/toten-api:sha-<sha>\"\n  worker_image = \"${ACR_NAME}.azurecr.io/worker/toten-worker:sha-<sha>\""
+  [[ -f "$secrets" ]] || die "Missing $secrets.\nCreate it with:\n  postgres_admin_password        = \"<pw>\"\n  keycloak_admin_password        = \"<pw>\"\n  keycloak_web_bff_client_secret = \"<secret>\"\n  api_image    = \"${ACR_NAME}.azurecr.io/api/toten-api:sha-<sha>\"\n  worker_image = \"${ACR_NAME}.azurecr.io/worker/toten-worker:sha-<sha>\""
 }
 
 # Detect Failed-state container apps and offer to delete them (guards Error 4)
@@ -345,9 +345,10 @@ cmd_bootstrap() {
     run_cmd gh variable set ACR_NAME              --body "$ACR_NAME"
     log_ok "GitHub Actions variables set"
     log_warn "Set secrets manually in GitHub UI (Settings → Secrets and variables → Actions):"
-    echo "    TF_VAR_POSTGRES_ADMIN_PASSWORD  — PostgreSQL admin password"
-    echo "    TF_VAR_KEYCLOAK_ADMIN_PASSWORD  — Keycloak admin password"
-    echo "    ROBOT_API_KEY                   — Robot Framework API key"
+    echo "    TF_VAR_POSTGRES_ADMIN_PASSWORD        — PostgreSQL admin password"
+    echo "    TF_VAR_KEYCLOAK_ADMIN_PASSWORD        — Keycloak admin password"
+    echo "    TF_VAR_KEYCLOAK_WEB_BFF_CLIENT_SECRET — ToTen-web-bff Keycloak client secret"
+    echo "    ROBOT_API_KEY                         — Robot Framework API key"
   else
     log_warn "gh CLI not authenticated. Set these GitHub Actions variables manually:"
     echo "  AZURE_CLIENT_ID       = $app_id"
@@ -407,7 +408,12 @@ cmd_provision() {
     -t "$worker_image" -f "$REPO_ROOT/docker/worker/Dockerfile" "$REPO_ROOT" --push
   log_ok "Worker image: $worker_image"
 
+  local web_bff_secret
+  web_bff_secret=$(read_secret "keycloak_web_bff_client_secret")
+  [[ -n "$web_bff_secret" ]] || die "Missing keycloak_web_bff_client_secret in terraform/envs/secrets.tfvars.\nGenerate one and add: keycloak_web_bff_client_secret = \"<secret>\"\nMust match the value in GitHub secret TF_VAR_KEYCLOAK_WEB_BFF_CLIENT_SECRET if this environment is also deployed via CI."
+
   run_cmd docker buildx build --platform linux/amd64 \
+    --build-arg KEYCLOAK_WEB_BFF_CLIENT_SECRET="$web_bff_secret" \
     -t "$keycloak_image" -f "$REPO_ROOT/docker/keycloak/Dockerfile" "$REPO_ROOT" --push
   log_ok "Keycloak image: $keycloak_image"
 

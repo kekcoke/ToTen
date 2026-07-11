@@ -49,6 +49,12 @@ variable "keycloak_authority_url" {
   type = string
 }
 
+variable "keycloak_web_bff_redirect_uri" {
+  type        = string
+  default     = ""
+  description = "Full callback URL for the web BFF (e.g. https://<api_fqdn>/auth/callback). Empty until the API's real deployed FQDN is known post-first-deploy — same bootstrap posture as allowed_origins. Must match the redirectUris baked into the ToTen-web-bff Keycloak client's realm entry (see docker/keycloak/Dockerfile's KEYCLOAK_WEB_BFF_REDIRECT_URI build-arg)."
+}
+
 variable "app_insights_connection_string" {
   type      = string
   sensitive = true
@@ -74,6 +80,11 @@ variable "postgres_fqdn" {
 }
 
 variable "postgres_admin_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "keycloak_web_bff_client_secret" {
   type      = string
   sensitive = true
 }

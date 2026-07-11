@@ -112,6 +112,7 @@ module "key_vault" {
   aca_managed_identity_principal_id = module.container_apps.managed_identity_principal_id
   postgres_admin_password           = var.postgres_admin_password
   keycloak_admin_password           = var.keycloak_admin_password
+  keycloak_web_bff_client_secret    = var.keycloak_web_bff_client_secret
   servicebus_connection_string      = module.service_bus.connection_string
   acr_admin_password                = module.registry.admin_password
   signalr_connection_string         = module.signalr.connection_string
@@ -157,5 +158,7 @@ module "apps" {
   storage_connection_string      = module.storage.primary_connection_string
   postgres_fqdn                  = module.postgres.fqdn
   postgres_admin_password        = var.postgres_admin_password
+  keycloak_web_bff_client_secret = var.keycloak_web_bff_client_secret
+  keycloak_web_bff_redirect_uri  = var.keycloak_web_bff_redirect_uri
   allowed_origins                = var.allowed_origins
 }

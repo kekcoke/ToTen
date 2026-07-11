@@ -49,6 +49,11 @@ resource "azurerm_container_app" "api" {
     value = var.app_insights_connection_string
   }
 
+  secret {
+    name  = "web-bff-client-secret"
+    value = var.keycloak_web_bff_client_secret
+  }
+
   template {
     min_replicas = 0
     max_replicas = 3
@@ -70,6 +75,18 @@ resource "azurerm_container_app" "api" {
       env {
         name  = "Auth__Authority"
         value = var.keycloak_authority_url
+      }
+      env {
+        name  = "Auth__WebBff__ClientId"
+        value = "ToTen-web-bff"
+      }
+      env {
+        name        = "Auth__WebBff__ClientSecret"
+        secret_name = "web-bff-client-secret"
+      }
+      env {
+        name  = "Auth__WebBff__RedirectUri"
+        value = var.keycloak_web_bff_redirect_uri
       }
       env {
         name  = "KeyVault__Uri"
@@ -105,16 +122,16 @@ resource "azurerm_container_app" "api" {
       }
 
       liveness_probe {
-        transport      = "HTTP"
-        path           = "/health/alive"
-        port           = 8081
+        transport        = "HTTP"
+        path             = "/health/alive"
+        port             = 8081
         interval_seconds = 10
       }
 
       readiness_probe {
-        transport      = "HTTP"
-        path           = "/health/ready"
-        port           = 8081
+        transport        = "HTTP"
+        path             = "/health/ready"
+        port             = 8081
         interval_seconds = 10
       }
     }

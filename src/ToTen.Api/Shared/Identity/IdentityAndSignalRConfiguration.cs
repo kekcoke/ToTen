@@ -11,6 +11,9 @@ public static class IdentityAndSignalRConfiguration
     {
         services.AddScoped<IIdentityManager, KeycloakIdentityManager>();
 
+        services.AddScoped<IKeycloakTokenClient, KeycloakTokenClient>();
+        services.AddHttpClient(KeycloakTokenClient.HttpClientName);
+
         var signalRConnectionString = configuration["SignalR:ConnectionString"];
         var signalR = services.AddSignalR();
         if (!string.IsNullOrWhiteSpace(signalRConnectionString))
