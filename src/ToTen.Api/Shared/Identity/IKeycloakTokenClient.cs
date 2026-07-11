@@ -12,6 +12,8 @@ public interface IKeycloakTokenClient
     Task<KeycloakTokenResponse> ExchangeCodeAsync(string code, string codeVerifier, string redirectUri, CancellationToken cancellationToken);
 
     Task<KeycloakTokenResponse> RefreshAsync(string refreshToken, CancellationToken cancellationToken);
+
+    Task EndSessionAsync(string idToken, CancellationToken cancellationToken);
 }
 
 public record KeycloakTokenResponse(string AccessToken, string? RefreshToken, string IdToken, int ExpiresIn);

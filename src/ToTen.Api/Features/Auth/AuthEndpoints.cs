@@ -156,7 +156,7 @@ public static class AuthEndpoints
         return Results.Redirect(transaction.ReturnUrl);
     }
 
-    private static async Task<IResult> HandleLogoutAsync(HttpContext httpContext, IHttpClientFactory httpClientFactory, IOptions<AuthOptions> authOptions)
+    private static async Task<IResult> HandleLogoutAsync(HttpContext httpContext, IKeycloakTokenClient tokenClient)
     {
         var authenticateResult = await httpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         var idToken = authenticateResult.Properties?.GetTokenValue("id_token");
@@ -165,18 +165,7 @@ public static class AuthEndpoints
 
         if (!string.IsNullOrEmpty(idToken))
         {
-            try
-            {
-                var client = httpClientFactory.CreateClient(KeycloakTokenClient.HttpClientName);
-                var endSessionUrl = QueryHelpers.AddQueryString(
-                    $"{authOptions.Value.Authority}/protocol/openid-connect/logout",
-                    "id_token_hint", idToken);
-                await client.GetAsync(endSessionUrl, httpContext.RequestAborted);
-            }
-            catch (HttpRequestException)
-            {
-                // Best-effort — the session cookie is already cleared regardless.
-            }
+            await tokenClient.EndSessionAsync(idToken, httpContext.RequestAborted);
         }
 
         return Results.NoContent();

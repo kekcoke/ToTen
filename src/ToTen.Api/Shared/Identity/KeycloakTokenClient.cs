@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using ToTen.Api.Shared.Authentication;
 
@@ -28,6 +29,22 @@ public class KeycloakTokenClient(IHttpClientFactory httpClientFactory, IOptions<
             ["client_secret"] = webBffOptions.Value.ClientSecret,
             ["refresh_token"] = refreshToken,
         }, cancellationToken);
+
+    public async Task EndSessionAsync(string idToken, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient(HttpClientName);
+            var endSessionUrl = QueryHelpers.AddQueryString(
+                $"{authOptions.Value.Authority}/protocol/openid-connect/logout",
+                "id_token_hint", idToken);
+            await client.GetAsync(endSessionUrl, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            // Best-effort — the caller has already cleared the session cookie regardless.
+        }
+    }
 
     private async Task<KeycloakTokenResponse> RequestTokenAsync(Dictionary<string, string> form, CancellationToken cancellationToken)
     {
