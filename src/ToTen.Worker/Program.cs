@@ -1,11 +1,20 @@
+using Azure.Identity;
 using Rebus.Config;
 using Rebus.Retry.Simple;
 using ToTen.Worker.Consumers;
+using ToTen.Worker.Data;
 using ToTen.Worker.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.ConfigureOpenTelemetry();
+
+var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+{
+    ManagedIdentityClientId = builder.Configuration["AZURE_CLIENT_ID"]
+});
+
+builder.AddWorkerNpgsql<WorkerDbContext>("ToTenDB", credential);
 
 // Configuration
 builder.Services.Configure<NotificationOptions>(
@@ -29,4 +38,5 @@ builder.Services.AddRebusHandler<NotificationHandler>();
 builder.Services.AddRebusHandler<ManifestCreatedHandler>();
 
 var host = builder.Build();
+await host.MigrateWorkerDbAsync();
 host.Run();
