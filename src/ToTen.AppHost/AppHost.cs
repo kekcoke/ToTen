@@ -73,8 +73,13 @@ var keycloakAuthority = ReferenceExpression.Create(
 // Key Vault emulator (local only) — production Key Vault is provisioned by Terraform.
 // Uses ghcr.io/james-gould/azure-keyvault-emulator; trust the self-signed cert in dev via
 // ASPNETCORE_Kestrel__Certificates__Default__* or set AZURE_KEYVAULT_DISABLE_CHALLENGE_RESOURCE_VERIFICATION=true.
+// Disabled by default: the ghcr.io image is currently not pullable (package removed/private
+// upstream, confirmed via 403 DENIED on an anonymous token request — not a local auth issue),
+// and no code path in Api/Worker reads KeyVault__Uri today, so nothing is lost by skipping it.
+// Flip to true once a working image is available and something actually consumes the secret.
+const bool EnableKeyVaultEmulator = false;
 IResourceBuilder<ContainerResource>? keyVaultEmulator = null;
-if (builder.ExecutionContext.IsRunMode)
+if (builder.ExecutionContext.IsRunMode && EnableKeyVaultEmulator)
 {
     keyVaultEmulator = builder.AddContainer("keyvault-emulator", "ghcr.io/james-gould/azure-keyvault-emulator")
         .WithImageTag("latest")
