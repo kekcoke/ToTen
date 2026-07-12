@@ -124,6 +124,8 @@
 
 **What was fixed in this pass:** the one mechanical gap called out in §4's "Additional structural notes" — *"Pagination exists only on `Marketplace/Search`; every other list endpoint returns the full table with no limit."* `GET /items` and `GET /categories` now accept `page`/`pageSize` query params (default 20, capped at 100) and return an `X-Total-Count` header, following the existing `Marketplace/Search` pagination pattern. This is a resource-exhaustion/response-size fix, not a new authorization decision — the global rate limiter already covers every endpoint, so no policy work was needed. Response body shapes are unchanged (still flat arrays) to avoid a breaking contract change for zero benefit.
 
+**Also resolved (follow-up pass):** Marketplace — Offer reject/counter (see row below and its own note).
+
 **What was skipped:** every other missing endpoint in the matrix. Building any of these means inventing a new authorization/ownership model per domain — that's new product surface, not a mechanical fix, and several already overlap decisions parked elsewhere in this document.
 
 | Domain / gap | Overlaps with | Notes |
@@ -132,7 +134,7 @@
 | Storage — Location: create-only, no list/view/edit/delete | — | Location has no read-back path at all once created. |
 | Storage — Box: fully modeled entity, zero CRUD endpoints | — | Only ever referenced by ID from Move/AssociateBoxes/GenerateQR; no ownership model defined for a Box on its own. |
 | Manifests — create/mutate only, no read-back, no status transition | — | No way to ever view a manifest via the API once created. |
-| Marketplace — Offer: no reject/counter (enum supports it) | — | Seller can only accept today. |
+| ~~Marketplace — Offer: no reject/counter (enum supports it)~~ | — | **Resolved.** See note below. |
 | Marketplace — Transaction / ItemLineage: write-only, no read endpoints | **§2.7** | Same "audit trail vs. no product need yet" decision already parked for the dead event records — a purchase-history/lineage endpoint would consume exactly those events. |
 | Organizations — no "my orgs" list, no rename/edit | — | Create/read-single/delete exist (with the §1.5 membership-check fix already applied); list and rename don't. |
 | Memberships — no member list, no role change post-invite | — | The one domain the audit calls out as the reference pattern for authorization — but even it is missing read/update. |
@@ -142,6 +144,17 @@
 | `Organization.DateDeleted` — modeled soft-delete column, never used; all deletes are hard deletes | — | Switching hard-delete → soft-delete changes query semantics at every existing read call site (list/get queries would need a `DateDeleted == null` filter added everywhere), not a mechanical toggle. |
 
 **Decision criteria:** Prioritize by what's blocking real usage, not by closing every cell uniformly. Memberships (already the reference-pattern domain) and Marketplace Offer reject/counter are the smallest, most self-contained gaps if a next pass wants to pick one. Everything touching Communications, Marketplace Transaction/ItemLineage, or Users should be scoped together with their existing flagged items (§2.3, §2.7) rather than in isolation.
+
+**Marketplace — Offer reject/counter: resolved (follow-up pass).** Picked over Memberships as the smaller of the two smallest self-contained gaps because `AcceptOfferEndpoint` was the only offer-resolution path in a domain that otherwise has a fully-verified, working commercial-transaction flow (`ABOUT.md` footnote 4) — a seller had no way to decline an unwanted offer at all. Scope, per product decision: the full Accept/Reject/Counter negotiation loop (not just reject), plus a companion read endpoint, plus consistent multi-offer bookkeeping.
+
+- `POST /api/offers/{offerId}/reject` — seller-only, `Pending` → `Rejected`.
+- `POST /api/offers/{offerId}/counter` — seller-only, `Pending` → `Countered`, sets a new `Offer.CounterAmount` column (nullable `decimal(18,2)`, migration `AddOfferCounterAmount`).
+- `POST /api/offers/{offerId}/counter/accept` / `.../counter/reject` — buyer-only, resolve a `Countered` offer; accept transfers ownership at `CounterAmount` (not the original `Amount`).
+- `GET /api/listings/{listingId}/offers` — seller-only, paginated (`page`/`pageSize`, `X-Total-Count`), the necessary companion to reject/counter since there was previously no way to discover which offers exist on a listing.
+- Accepting any offer (original or countered) now auto-rejects sibling `Pending`/`Countered` offers on the same listing, so a `Pending` offer can no longer outlive the item's ownership transfer.
+- The transaction/lineage/ownership-transfer logic shared by accept and counter-accept was extracted into `Features/Marketplace/Shared/OfferAcceptance.cs` rather than duplicated.
+
+See `src/ToTen.Api/Features/Marketplace/{RejectOffer,CounterOffer,RespondToCounterOffer,GetListingOffers,Shared}/`, `src/ToTen.Api/Models/Marketplace.cs`, migration `20260712051314_AddOfferCounterAmount`, and `tests/ToTen.Api.IntegrationTests/Marketplace/MarketplaceEndpointsTests.cs`. Memberships (member list, role change) remains open — smallest gap left if a next pass wants to pick one.
 
 ---
 

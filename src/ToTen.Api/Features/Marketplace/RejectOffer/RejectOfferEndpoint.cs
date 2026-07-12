@@ -1,23 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using ToTen.Api.Data;
-using ToTen.Api.Features.Marketplace.Shared;
+using ToTen.Api.Features.Marketplace.SubmitOffer;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Identity;
 using ToTen.Api.Shared.RateLimiting;
-using Rebus.Bus;
 using System.Security.Claims;
 
-namespace ToTen.Api.Features.Marketplace.AcceptOffer;
+namespace ToTen.Api.Features.Marketplace.RejectOffer;
 
-public static class AcceptOfferEndpoint
+public static class RejectOfferEndpoint
 {
-    public static void MapAcceptOffer(this IEndpointRouteBuilder app)
+    public static void MapRejectOffer(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/offers/{offerId:guid}/accept", async (
+        app.MapPost("/api/offers/{offerId:guid}/reject", async (
             Guid offerId,
             ToTenContext context,
             IIdentityManager identityManager,
-            IBus bus,
             ClaimsPrincipal principal) =>
         {
             var user = identityManager.GetCurrentUser(principal);
@@ -29,21 +27,19 @@ public static class AcceptOfferEndpoint
                 .FirstOrDefaultAsync(o => o.Id == offerId);
 
             if (offer == null) return Results.NotFound("Offer not found.");
-            if (offer.Listing == null || !offer.Listing.IsActive) return Results.BadRequest("Listing is no longer active.");
-
-            var item = offer.Listing.InventoryItem;
+            var item = offer.Listing?.InventoryItem;
             if (item == null) return Results.InternalServerError("Linked item not found.");
 
             // Verify the current user is the owner of the item (seller)
             if (item.OwnerId != user.Id.ToString()) return Results.Forbid();
-            if (offer.Status != OfferStatus.Pending) return Results.BadRequest("Only pending offers can be accepted.");
+            if (offer.Status != OfferStatus.Pending) return Results.BadRequest("Only pending offers can be rejected.");
 
-            var transaction = await OfferAcceptance.AcceptAsync(
-                context, bus, offer, offer.Amount, user.Id.ToString(), user.Email);
+            offer.Status = OfferStatus.Rejected;
+            await context.SaveChangesAsync();
 
-            return Results.Ok(new { TransactionId = transaction.Id, NewOwnerId = item.OwnerId });
+            return Results.Ok(new OfferResponse(offer.Id, offer.ListingId, offer.Amount, offer.Status, offer.CounterAmount));
         })
-        .WithName("AcceptOffer")
+        .WithName("RejectOffer")
         .WithTags("Marketplace")
         .RequireAuthorization()
         .RequireRateLimiting(RateLimitingConfiguration.StrictPolicy);

@@ -21,6 +21,7 @@ public class Offer
     public required string BuyerId { get; set; }
     public decimal Amount { get; set; }
     public OfferStatus Status { get; set; }
+    public decimal? CounterAmount { get; set; }
 }
 
 public enum OfferStatus
