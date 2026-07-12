@@ -6,3 +6,5 @@ public record CreateOrganizationRequest(
     [property: Required, StringLength(200)] string Name,
     [property: RegularExpression("^(Household|Business)$")] string Type);
 public record OrganizationResponse(Guid Id, string Name, string Type);
+public record RenameOrganizationRequest(
+    [property: Required, StringLength(200)] string Name);

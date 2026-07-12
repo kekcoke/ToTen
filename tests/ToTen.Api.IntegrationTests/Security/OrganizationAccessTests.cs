@@ -134,4 +134,46 @@ public class OrganizationAccessTests(ToTenWebApplicationFactory factory)
         var deleteResponse = await adminClient.DeleteAsync($"/api/organizations/{orgId}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task RenameOrganization_ByNonOwnerMember_ReturnsForbidden()
+    {
+        var orgId = await CreateOrgAsync(_client);
+        var memberId = Guid.NewGuid();
+
+        var inviteResponse = await _client.PostAsJsonAsync(
+            $"/api/organizations/{orgId}/members",
+            new InviteMemberRequest(memberId, "member"),
+            TestContext.Current.CancellationToken);
+        inviteResponse.EnsureSuccessStatusCode();
+
+        var memberClient = factory.CreateAuthenticatedClient(userId: memberId);
+
+        var response = await memberClient.PatchAsJsonAsync(
+            $"/api/organizations/{orgId}",
+            new RenameOrganizationRequest("Renamed By Member"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RenameOrganization_ByNonMember_ReturnsForbidden()
+    {
+        var orgId = await CreateOrgAsync(_client);
+        var nonMemberClient = factory.CreateAuthenticatedClient(userId: Guid.NewGuid());
+
+        var response = await nonMemberClient.PatchAsJsonAsync(
+            $"/api/organizations/{orgId}",
+            new RenameOrganizationRequest("Renamed By Stranger"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+        var getResponse = await _client.GetAsync($"/api/organizations/{orgId}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+        var org = await getResponse.Content.ReadFromJsonAsync<OrganizationResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(org);
+        Assert.Equal("Access Test Org", org.Name);
+    }
 }
