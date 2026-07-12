@@ -7,3 +7,6 @@ public record InviteMemberRequest(
     [property: NotEmptyGuid] Guid UserId,
     [property: RegularExpression("^(?i:Owner|Member)$")] string Role);
 public record MembershipResponse(Guid OrganizationId, Guid UserId, string Role);
+public record MemberResponse(string UserId, string Role);
+public record ChangeMemberRoleRequest(
+    [property: RegularExpression("^(?i:Owner|Member)$")] string Role);
