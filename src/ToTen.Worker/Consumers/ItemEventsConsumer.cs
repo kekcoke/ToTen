@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Rebus.Handlers;
 using ToTen.Contracts.Events;
+using ToTen.Worker.Data;
 
 namespace ToTen.Worker.Consumers;
 
@@ -9,38 +11,65 @@ public class ItemEventsHandler :
     IHandleMessages<ItemTransferredEvent>,
     IHandleMessages<ItemDeletedEvent>
 {
+    private readonly WorkerDbContext _db;
     private readonly ILogger<ItemEventsHandler> _logger;
 
-    public ItemEventsHandler(ILogger<ItemEventsHandler> logger)
+    public ItemEventsHandler(WorkerDbContext db, ILogger<ItemEventsHandler> logger)
     {
+        _db = db;
         _logger = logger;
     }
 
-    public Task Handle(ItemMovedEvent message)
+    public async Task Handle(ItemMovedEvent message)
     {
         _logger.LogInformation("Processing ItemMovedEvent: Item {ItemId} moved to {ToLocationId}",
             message.ItemId, message.ToLocationId);
-        return Task.CompletedTask;
+
+        await RecordAuditLogAsync("ItemMoved", itemId: message.ItemId, manifestId: null,
+            actorId: null, occurredAt: message.MovedAt, message);
     }
 
-    public Task Handle(ItemListingEvent message)
+    public async Task Handle(ItemListingEvent message)
     {
         _logger.LogInformation("Processing ItemListingEvent: Item {ItemId} listed for {Price}",
             message.ItemId, message.Price);
-        return Task.CompletedTask;
+
+        await RecordAuditLogAsync("ItemListed", itemId: message.ItemId, manifestId: null,
+            actorId: null, occurredAt: DateTimeOffset.UtcNow, message);
     }
 
-    public Task Handle(ItemTransferredEvent message)
+    public async Task Handle(ItemTransferredEvent message)
     {
         _logger.LogInformation("Processing ItemTransferredEvent: Item {ItemId} transferred from {From} to {To}",
             message.ItemId, message.FromOwnerId, message.ToOwnerId);
-        return Task.CompletedTask;
+
+        await RecordAuditLogAsync("ItemTransferred", itemId: message.ItemId, manifestId: null,
+            actorId: message.ToOwnerId, occurredAt: message.Timestamp, message);
     }
 
-    public Task Handle(ItemDeletedEvent message)
+    public async Task Handle(ItemDeletedEvent message)
     {
         _logger.LogInformation("Processing ItemDeletedEvent: Item {ItemId} deleted by {UserId}",
             message.ItemId, message.UserId);
-        return Task.CompletedTask;
+
+        await RecordAuditLogAsync("ItemDeleted", itemId: message.ItemId, manifestId: null,
+            actorId: message.UserId, occurredAt: message.Timestamp, message);
+    }
+
+    private async Task RecordAuditLogAsync(
+        string eventType, Guid? itemId, Guid? manifestId, string? actorId, DateTimeOffset occurredAt, object payload)
+    {
+        _db.AuditLogEntries.Add(new AuditLogEntry
+        {
+            EventType = eventType,
+            ItemId = itemId,
+            ManifestId = manifestId,
+            ActorId = actorId,
+            OccurredAt = occurredAt,
+            RecordedAt = DateTimeOffset.UtcNow,
+            Payload = JsonSerializer.SerializeToDocument(payload)
+        });
+
+        await _db.SaveChangesAsync();
     }
 }

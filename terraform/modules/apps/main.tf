@@ -172,6 +172,11 @@ resource "azurerm_container_app" "worker" {
   }
 
   secret {
+    name  = "postgres-conn"
+    value = local.postgres_conn
+  }
+
+  secret {
     name  = "servicebus-conn"
     value = var.servicebus_connection_string
   }
@@ -203,6 +208,10 @@ resource "azurerm_container_app" "worker" {
       env {
         name  = "KeyVault__Uri"
         value = var.key_vault_uri
+      }
+      env {
+        name        = "ConnectionStrings__ToTenDB"
+        secret_name = "postgres-conn"
       }
       env {
         name        = "ConnectionStrings__servicebus"

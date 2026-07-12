@@ -67,9 +67,11 @@ Nine vertical-slice domains under `Features/`: `Categories`, `Communications` (S
 ### Worker Consumers
 
 Three message consumers under `ToTen.Worker/Consumers/` implementing `IHandleMessages<T>`:
-- `ItemEventsConsumer` — item lifecycle events
-- `ManifestCreatedConsumer` — manifest creation events
+- `ItemEventsConsumer` — item lifecycle events; also writes an `AuditLogEntry` row per event via `WorkerDbContext` (`ToTen.Worker/Data/`, audit finding 2.6)
+- `ManifestCreatedConsumer` — manifest creation events; same audit-log write
 - `NotificationConsumer` — push notifications
+
+Worker has its own Postgres access (`WorkerDbContext`, `ToTen.Worker/Data/`) for the `AuditLogEntries` table — a separate migration history (`__WorkerEFMigrationsHistory`) from Api's `ToTenContext` against the same `ToTen` database, not a shared `DbContext`.
 
 ### Vertical Slice Organization (ToTen.Api)
 
@@ -107,7 +109,7 @@ In local development the Service Bus runs as an emulator container (persistent l
 ### Local Infrastructure (Aspire)
 
 `AppHost.cs` provisions all dependencies as containers:
-- **PostgreSQL** + pgAdmin (port 5050)
+- **PostgreSQL** + pgAdmin (port 5050) — referenced by both Api and Worker
 - **Azure Service Bus emulator** (persistent)
 - **Azurite** (Azure Storage emulator, persistent) — blob container `"blobs"`
 - **Keycloak** (port 8080, persistent, realm imported from `src/ToTen.AppHost/realms/`)

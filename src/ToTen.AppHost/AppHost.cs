@@ -120,8 +120,10 @@ var api = builder.AddProject<ToTen_Api>("ToTen-api")
 
 // Add Worker Service
 var worker = builder.AddProject<ToTen_Worker>("ToTen-worker")
+                    .WithReference(ToTenDb)
                     .WithReference(serviceBus)
                     .WithReference(blobs)
+                    .WaitFor(ToTenDb)
                     .WaitFor(serviceBus)
                     .WaitFor(blobs);
 
