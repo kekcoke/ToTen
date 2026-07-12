@@ -30,6 +30,9 @@ public class ToTenContext(DbContextOptions<ToTenContext> options)
     // Lineage
     public DbSet<ItemLineage> ItemLineages => Set<ItemLineage>();
 
+    // Audit trail (table owned/migrated by ToTen.Worker — read-only here, see AuditLogEntryConfiguration)
+    public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("postgis");
