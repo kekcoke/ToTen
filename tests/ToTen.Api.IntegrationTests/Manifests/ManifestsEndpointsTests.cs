@@ -278,8 +278,15 @@ public class ManifestsEndpointsTests(ToTenWebApplicationFactory factory)
     [Fact]
     public async Task GetManifests_ReturnsOnlyCallerOrgManifests_Paginated()
     {
+        // Uses an isolated caller identity (not factory.DefaultTestUserId) so this test's
+        // X-Total-Count assertions aren't polluted by other tests in this class fixture that
+        // also enroll the shared default user into their own orgs against the same Postgres
+        // container.
+        var callerId = Guid.NewGuid();
+        var client = factory.CreateAuthenticatedClient(userId: callerId);
+
         var (srcId, destId) = await CreateLocationsAsync();
-        var callerOrgId = await CreateOrgWithMemberAsync();
+        var callerOrgId = await CreateOrgWithMemberAsync(userId: callerId.ToString());
         var otherOrgId = await CreateOrgWithMemberAsync(userId: Guid.NewGuid().ToString());
 
         var callerManifest1 = await SeedManifestAsync(callerOrgId, srcId, destId);
@@ -287,7 +294,7 @@ public class ManifestsEndpointsTests(ToTenWebApplicationFactory factory)
         var callerManifest3 = await SeedManifestAsync(callerOrgId, srcId, destId);
         var otherManifest = await SeedManifestAsync(otherOrgId, srcId, destId);
 
-        var page1Response = await _client.GetAsync("/api/manifests?page=1&pageSize=2", TestContext.Current.CancellationToken);
+        var page1Response = await client.GetAsync("/api/manifests?page=1&pageSize=2", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, page1Response.StatusCode);
         Assert.Equal("3", page1Response.Headers.GetValues("X-Total-Count").Single());
         var page1 = await page1Response.Content.ReadFromJsonAsync<List<ManifestResponse>>(TestContext.Current.CancellationToken);
@@ -295,7 +302,7 @@ public class ManifestsEndpointsTests(ToTenWebApplicationFactory factory)
         Assert.Equal(2, page1.Count);
         Assert.DoesNotContain(page1, m => m.Id == otherManifest.Id);
 
-        var page2Response = await _client.GetAsync("/api/manifests?page=2&pageSize=2", TestContext.Current.CancellationToken);
+        var page2Response = await client.GetAsync("/api/manifests?page=2&pageSize=2", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, page2Response.StatusCode);
         var page2 = await page2Response.Content.ReadFromJsonAsync<List<ManifestResponse>>(TestContext.Current.CancellationToken);
         Assert.NotNull(page2);
