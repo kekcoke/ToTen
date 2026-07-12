@@ -23,6 +23,7 @@ public class OfferConfiguration : IEntityTypeConfiguration<Offer>
     {
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Amount).HasPrecision(18, 2);
+        builder.Property(o => o.CounterAmount).HasPrecision(18, 2);
 
         builder.HasOne(o => o.Listing)
             .WithMany()

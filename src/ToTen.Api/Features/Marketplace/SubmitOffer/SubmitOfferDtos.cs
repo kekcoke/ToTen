@@ -9,4 +9,5 @@ public record OfferResponse(
     Guid Id,
     Guid ListingId,
     decimal Amount,
-    OfferStatus Status);
+    OfferStatus Status,
+    decimal? CounterAmount = null);
