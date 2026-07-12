@@ -38,6 +38,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ToTen.Api\ToTen.Api.csproj" />
+    <ProjectReference Include="..\..\src\ToTen.Worker\ToTen.Worker.csproj">
+      <!-- Aliased: both ToTen.Api and ToTen.Worker have a top-level (global-namespace) Program
+           class; an unaliased reference makes `Program` ambiguous everywhere in this project. -->
+      <Aliases>WorkerAssembly</Aliases>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>
