@@ -137,7 +137,7 @@
 | ~~Marketplace — Offer: no reject/counter (enum supports it)~~ | — | **Resolved.** See note below. |
 | Marketplace — Transaction / ItemLineage: write-only, no read endpoints | **§2.7** | Same "audit trail vs. no product need yet" decision already parked for the dead event records — a purchase-history/lineage endpoint would consume exactly those events. |
 | Organizations — no "my orgs" list, no rename/edit | — | Create/read-single/delete exist (with the §1.5 membership-check fix already applied); list and rename don't. |
-| Memberships — no member list, no role change post-invite | — | The one domain the audit calls out as the reference pattern for authorization — but even it is missing read/update. |
+| ~~Memberships — no member list, no role change post-invite~~ | — | **Resolved.** See Phase 7 note below. |
 | Users — no real Keycloak Admin API integration (Create/Update/Delete are no-ops or absent, Read is hardcoded mock data) | — | Largest scope item in the matrix; not a CRUD gap so much as the feature never being built. |
 | Communications — no REST surface at all, SignalR-only, no persistence | **§2.3** | Already flagged: `ChatHub` anti-abuse controls shipped, persistence (`ChatThread`/`ChatMessage`) deliberately deferred pending a participant-model decision. |
 | 5 of 6 authorization policies (`UserPolicy`, `BusinessOwnerPolicy`, `InternalUserPolicy`, `SuperAdminPolicy`, `ThirdPartyPolicy`) never referenced by any endpoint | — | Wiring a policy to a specific endpoint is itself a per-endpoint security decision, not a global mechanical fix — which policy applies where has to be decided domain by domain (likely alongside the missing-endpoint work above). |
@@ -269,9 +269,9 @@ Sequencing for everything still open across `docs/architecture-security-audit-20
 
 ### Phase 7 — §4 Core Domain CRUD (Memberships, Organizations, Manifests, Storage)
 
-**Status:** Planned.
+**Status:** Partially resolved — Memberships done; Organizations, Manifests, Storage remain planned.
 
-- **Memberships** — `GET /api/organizations/{orgId}/members` (paginated member list) + a role-change endpoint (e.g. `PATCH /api/organizations/{orgId}/members/{userId}`), post-invite. Smallest gap; audit's own reference-pattern domain.
+- **Memberships — resolved.** `GET /api/organizations/{orgId}/members` (paginated member list, `page`/`pageSize`/`X-Total-Count`, any org member or admin/super_admin) and `PATCH /api/organizations/{orgId}/members/{userId}/role` (Owner-role member or admin/super_admin only; blocks demoting/removing an org's sole remaining Owner with a `400`) shipped. See `src/ToTen.Api/Features/Memberships/`, `tests/ToTen.Api.IntegrationTests/Memberships/MembershipsEndpointsTests.cs`.
 - **Organizations** — `GET /api/organizations` scoped to the caller's memberships ("my orgs") + `PATCH /api/organizations/{id}` (rename). Create/read-single/delete already exist.
 - **Manifests** — `GET /api/manifests/{id}` + `GET /api/manifests` (paginated, ownership-gated, following `GetItemAuditTrail`'s pattern: `page`/`pageSize`, `X-Total-Count`, 404/403 via `ResourceOwnerRequirement`) plus a status-transition endpoint (e.g. `PATCH /api/manifests/{id}/status`). Currently zero `MapGet` exists in `Features/Manifests/` — a manifest can never be viewed again once created, directly undercutting the "aggregate items into manifests for logistics" capability `ABOUT.md` already claims as built.
 - **Storage** — `Box` CRUD (`Features/Storage/CreateBox/`, `GetBox/`, `UpdateBox/`, `DeleteBox/`) reusing the `ResourceOwnerRequirement` pattern already proven on Items (Box belongs to a Location which belongs to an Organization — gate by org membership the same way, no new authorization concept). `Location` gains list/get/update/delete to pair with the existing create-only endpoint.
