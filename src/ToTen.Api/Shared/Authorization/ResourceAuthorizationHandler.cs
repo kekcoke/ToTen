@@ -37,6 +37,7 @@ public class ResourceAuthorizationHandler : AuthorizationHandler<ResourceOwnerRe
             InventoryItem item => await CheckItemAccess(user, item),
             Location loc => await CheckLocationAccess(user, loc),
             Box box => await CheckBoxAccess(user, box),
+            Manifest manifest => await CheckManifestAccess(user, manifest),
             _ => false
         };
 
@@ -80,5 +81,12 @@ public class ResourceAuthorizationHandler : AuthorizationHandler<ResourceOwnerRe
                 .AnyAsync(m => m.OrganizationId == box.OrganizationId && m.UserId == userIdString);
         }
         return false;
+    }
+
+    private async Task<bool> CheckManifestAccess(UserContext user, Manifest manifest)
+    {
+        var userIdString = user.Id.ToString();
+        return await _dbContext.OrganizationMemberships
+            .AnyAsync(m => m.OrganizationId == manifest.OrganizationId && m.UserId == userIdString);
     }
 }

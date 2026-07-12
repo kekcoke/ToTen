@@ -13,7 +13,7 @@ public class Manifest
     public ManifestStatus Status { get; set; }
 
     // RBA
-    public Guid? OrganizationId { get; set; }
+    public Guid OrganizationId { get; set; }
     public Organization? Organization { get; set; }
 }
 

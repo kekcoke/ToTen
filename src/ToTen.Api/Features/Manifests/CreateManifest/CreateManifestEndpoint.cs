@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Rebus.Bus;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
@@ -21,6 +22,14 @@ public static class CreateManifestEndpoint
             var user = identityManager.GetCurrentUser(principal);
             if (user == null) return Results.Unauthorized();
 
+            var userIdString = user.Id.ToString();
+            var isMember = await context.OrganizationMemberships
+                .AnyAsync(m => m.OrganizationId == request.OrganizationId && m.UserId == userIdString);
+            if (!isMember && !user.Roles.Contains("admin") && !user.Roles.Contains("super_admin"))
+            {
+                return Results.Forbid();
+            }
+
             var manifest = new Manifest
             {
                 Id = Guid.NewGuid(),
@@ -36,7 +45,7 @@ public static class CreateManifestEndpoint
             // Publish event
             await bus.Publish(new ManifestCreatedEvent(
                 manifest.Id,
-                manifest.OrganizationId ?? Guid.Empty,
+                manifest.OrganizationId,
                 manifest.SourceLocationId.ToString(),
                 manifest.DestinationLocationId.ToString()));
 
