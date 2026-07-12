@@ -158,3 +158,63 @@
 | **Shared read model / shared schema for Item-domain identifiers** | Would let a real FK exist, and could also serve future read endpoints (§2.7, §4's Marketplace Transaction/ItemLineage gap) | Significant new infrastructure — either a distinct "Item identifiers" table both DbContexts genuinely share, or a change in how Worker and Api relate to the same database; overlaps with whatever §2.7's "wire up dead event records" decision eventually needs |
 
 **Decision criteria:** Does the Item domain need real FK/relationship enforcement across service boundaries before mobile launch, or is "informational, eventually-consistent, no FK" the accepted long-term posture for Worker-owned (and any future non-Api-owned) tables that reference Item-domain IDs? If a concrete need shows up — e.g. the audit trail becoming user-facing history, or §2.7's dead event records getting wired up — revisit this alongside that work rather than solving it speculatively now.
+
+---
+
+## 2.9 — `ABOUT.md` claimed transfer capabilities that don't exist (real-time tracking, cross-party transfer, donations)
+
+**Status:** Resolved by documentation correction + explicit MVP scope trim (this pass). No code change.
+
+**The problem:** A product fact-check of `ABOUT.md` against the current codebase found three "Core Capabilities" bullets with zero implementation: (1) "Near real-time inventory tracking" — no hub/websocket touches inventory, Items are plain REST CRUD (`ChatHub.cs` is chat-only, unrelated); (2) "Transfer items between homeowners, businesses, moving companies, and NGOs" — `Organization.cs:8` restricts `Type` to `"Household, Business"` only, and `MoveItemEndpoint.cs` only relocates an item within the *same* owner, never across owners or party types; (3) "Donations" as a transfer type — zero code references anywhere in the repo.
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Build it** — extend `Organization.Type`, add a cross-owner transfer endpoint, add a donation workflow, add a real-time push channel | Closes the gap the docs already claim | Four separate, non-trivial feature builds with no current product signal that they're needed for launch |
+| **Trim MVP scope, correct the docs** (chosen) | Zero new code; `ABOUT.md` now accurately describes what ships | Moving Company/NGO/Donation/real-time-tracking vision is deferred, not delivered |
+
+**Decision criteria (resolved):** MVP is scoped to Household + Business with commercial marketplace transactions only (see `ABOUT.md` footnotes 1–3). Moving Company and NGO account types, donation workflows, and real-time inventory push are explicit post-MVP roadmap items — revisit if/when a concrete Moving Company or NGO customer need materializes.
+
+---
+
+## 2.10 — Listing is single-item only; no decompose/reversal endpoint for listings or manifests
+
+**Status:** New, flagged — not resolved. No code change in this pass.
+
+**The problem:** `ABOUT.md` claims two capabilities the schema and API don't support: "Aggregate multiple items into a single listing" and "Decompose aggregated listings or manifests back into individual items." `Listings."InventoryItemId"` is a singular `NOT NULL` foreign key (`setup.sql:105-113`) — one listing always maps to exactly one item, with no join table for bundling. Separately, no endpoint anywhere in `Features/Marketplace`, `Features/Manifests`, or `Features/Items` reverses an aggregation (pulls an item back out of a listing, or removes a box from a manifest). Manifest aggregation itself (Items → Boxes → Manifests) *is* real and wired (`AssociateBoxesEndpoint.cs`), just one-directional.
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Add a `Listing` ↔ `InventoryItem` join table + bundling UI/API, plus decompose endpoints** | Closes both gaps as originally envisioned; useful for bulk resale (e.g. a box lot) | Real schema migration + new endpoints across two domains; no current product signal this is needed for MVP |
+| **Leave as single-item listings, correct the docs** | Zero new work; matches the trimmed MVP's commercial-marketplace happy path, where single-item resale is the common case | "Bundle and resell a box of items" and "undo a manifest/listing" remain unsupported indefinitely |
+
+**Decision criteria:** Is bulk/bundle resale (list a box of items as one listing) or reversible aggregation (undo a manifest or listing) a real near-term need for Household/Business users, or is single-item listing sufficient for the trimmed MVP? If no concrete need surfaces, correct `ABOUT.md` (done, see footnotes 5 and 7) and leave the schema as-is.
+
+---
+
+## 2.11 — Item Audit Trail has no read endpoint
+
+**Status:** Resolved — implemented the "build it now" option from the decision table below.
+
+**The problem:** `ABOUT.md` claimed "Item Audit Trail — Complete audit history for inventory items — Open access" as a *current* capability. `ToTen.Worker`'s consumers do write one `AuditLogEntry` row per item/manifest event (§2.6's resolution), but zero read endpoint existed anywhere in `ToTen.Api` — there was no way for any caller, authenticated or not, to read this data back. "Open access" described a read path that didn't exist, not one that was merely unauthenticated.
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Build `GET /items/{id}/audit` (or similar) now** (chosen) | Data already exists (Worker writes it today); directly satisfies the capability `ABOUT.md` already claims; low scope — one read endpoint against an existing table | `AuditLogEntries` has no FK back to `InventoryItems` (§2.8) — a read endpoint would need to trust `ItemId` values it can't verify referentially |
+| **Leave write-only, correct the docs** | Zero new work | "Item Audit Trail" remains a write-only capability with no user-facing value until a UI need appears |
+
+**What was built:** `GET /items/{id}/audit` (`src/ToTen.Api/Features/Items/GetItemAuditTrail/`), paginated identically to `GetItems` (`page`/`pageSize`, `X-Total-Count` header), gated by the same `ResourceOwnerRequirement`/`ResourceAuthorizationHandler` ownership check as `GetItem` — 404 if the item doesn't exist, 403 if the caller doesn't own it or share its org. `AuditLogEntry` is duplicated (not shared via `ToTen.Contracts`) as a read-only model in `src/ToTen.Api/Data/` — `Data/Configurations/AuditLogEntryConfiguration.cs` maps it with `.ToTable("AuditLogEntries", t => t.ExcludeFromMigrations())`, so Api's own `dotnet ef migrations` never tries to create/alter a table Worker already owns (verified: a scratch `dotnet ef migrations add` produced an empty `Up`/`Down` and the entity is entirely absent from `ToTenContextModelSnapshot.cs`). Test coverage: `tests/ToTen.Api.IntegrationTests/Items/GetItemAuditTrailTests.cs` (ordering, pagination, empty history, 404, 403). §2.8's no-FK posture is accepted as-is here, per that finding's own decision criteria — this endpoint doesn't need to resolve it, just read what exists.
+
+**Known caveat (not fixed, documented):** Api and Worker each run their own EF migrations independently at Aspire startup with no ordering dependency between them (`AppHost.cs` — both `.WaitFor(ToTenDb)`, neither waits on the other). If Worker hasn't yet applied its migration when Api first serves this endpoint, the query fails with "relation does not exist" until Worker catches up. Transient startup-race, not a steady-state concern — no defensive handling added, consistent with how the rest of the codebase doesn't guard against scenarios that can't happen once both services are up.
+
+---
+
+## Recommended Next Step
+
+**Recommendation: build the audit-trail read endpoint (§2.11) next, not further DB schema hardening.**
+
+Reasoning:
+
+- The critical/high-priority security audit findings (§1, §2.1–2.7) are already resolved per `CLAUDE.md` — auth, ownership checks, Keycloak role-claim mapping, and Worker audit writes are all in place.
+- With MVP trimmed to Household + Business (§2.9), the previously-"false" capability bullets (donations, cross-org transfer, real-time push, listing bundling/decompose — §2.9, §2.10) are now correctly out of scope. There's nothing to build there yet; `ABOUT.md` has been corrected to say so.
+- That leaves §2.11 as the one already-partially-built, MVP-relevant gap: the Worker already writes `AuditLogEntries` per item/manifest event; adding one `GET` endpoint in the Api exposes real, already-collected data and turns the "Item Audit Trail" bullet from false into true — the cheapest lever available in this pass.
+- Broader DB schema hardening (constraining `Organization.Type` to an enum/CHECK, resolving the Worker/Api FK gap in §2.8) is lower priority right now: `Organization.Type` free-text is harmless at Household/Business-only scope, and §2.8's no-FK posture is an already-accepted eventual-consistency tradeoff between two independently-migrated schemas. Revisit either only if a concrete need shows up — e.g., building §2.11's read endpoint surfaces bad/orphaned `ItemId` references in practice, at which point §2.8 and §2.11 should be solved together.

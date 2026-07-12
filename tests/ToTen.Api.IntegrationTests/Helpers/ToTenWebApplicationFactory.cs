@@ -1,3 +1,5 @@
+extern alias WorkerAssembly;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -15,6 +17,7 @@ using ToTen.Api.Data;
 using ToTen.Api.Models;
 using ToTen.Api.Shared.Infrastructure;
 using ToTen.Api.Shared.Messaging;
+using WorkerDbContext = WorkerAssembly::ToTen.Worker.Data.WorkerDbContext;
 
 namespace ToTen.Api.IntegrationTests.Helpers;
 
@@ -26,7 +29,20 @@ public class ToTenWebApplicationFactory : WebApplicationFactory<Program>, IAsync
 
     public Guid DefaultTestUserId { get; } = Guid.NewGuid();
 
-    async ValueTask IAsyncLifetime.InitializeAsync() => await _db.StartAsync();
+    async ValueTask IAsyncLifetime.InitializeAsync()
+    {
+        await _db.StartAsync();
+
+        // AuditLogEntries is owned/migrated by ToTen.Worker, not Api — apply Worker's
+        // migrations too so tests against the shared container have that table available,
+        // mirroring how both services independently migrate the same DB in AppHost.
+        var workerOptions = new DbContextOptionsBuilder<WorkerDbContext>()
+            .UseNpgsql(_db.GetConnectionString(),
+                npgsql => npgsql.MigrationsHistoryTable("__WorkerEFMigrationsHistory"))
+            .Options;
+        await using var workerContext = new WorkerDbContext(workerOptions);
+        await workerContext.Database.MigrateAsync();
+    }
 
     public override async ValueTask DisposeAsync()
     {
