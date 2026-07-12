@@ -48,7 +48,7 @@ public static class OrganizationEndpoints
             if (user == null) return Results.Unauthorized();
 
             var org = await context.Organizations.FindAsync(id);
-            if (org == null) return Results.NotFound();
+            if (org == null || org.DateDeleted != null) return Results.NotFound();
 
             var isMember = await context.OrganizationMemberships.AnyAsync(m =>
                 m.OrganizationId == id && m.UserId == user.Id.ToString());
@@ -65,7 +65,7 @@ public static class OrganizationEndpoints
             if (user == null) return Results.Unauthorized();
 
             var org = await context.Organizations.FindAsync(id);
-            if (org == null) return Results.NotFound();
+            if (org == null || org.DateDeleted != null) return Results.NotFound();
 
             var isOwner = await context.OrganizationMemberships.AnyAsync(m =>
                 m.OrganizationId == id && m.UserId == user.Id.ToString() && m.Role == "Owner");
@@ -73,7 +73,7 @@ public static class OrganizationEndpoints
             if (!isOwner && !user.Roles.Contains("admin") && !user.Roles.Contains("super_admin"))
                 return Results.Forbid();
 
-            context.Organizations.Remove(org);
+            org.DateDeleted = DateTimeOffset.UtcNow;
             await context.SaveChangesAsync();
             return Results.NoContent();
         });

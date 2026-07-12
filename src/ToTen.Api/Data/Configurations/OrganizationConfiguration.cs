@@ -11,6 +11,8 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Name).IsRequired().HasMaxLength(255);
         builder.Property(o => o.Type).IsRequired().HasMaxLength(50);
+
+        builder.ToTable(t => t.HasCheckConstraint("CK_Organizations_Type", "\"Type\" IN ('Household', 'Business')"));
     }
 }
 

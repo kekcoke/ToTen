@@ -23,3 +23,12 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.HasIndex(n => n.UserId);
     }
 }
+
+public class NotificationPreferenceConfiguration : IEntityTypeConfiguration<NotificationPreference>
+{
+    public void Configure(EntityTypeBuilder<NotificationPreference> builder)
+    {
+        builder.HasKey(np => np.Id);
+        builder.HasIndex(np => np.UserId).IsUnique();
+    }
+}

@@ -221,13 +221,134 @@ See `src/ToTen.Api/Features/Marketplace/{RejectOffer,CounterOffer,RespondToCount
 
 ---
 
-## Recommended Next Step
+## 2.12 — Notifications pipeline is wired but has no producer
 
-**Recommendation: build the audit-trail read endpoint (§2.11) next, not further DB schema hardening.**
+**Status:** New, flagged — not resolved. Scoped as Phase 10 of the MVP Phase Roadmap below.
 
-Reasoning:
+**The problem:** `ABOUT.md` footnote 10 confirms `Notifications`/`NotificationPreferences` are genuinely inert — grep across `ToTen.Api` for either name returns only `DbSet`/migration hits, no endpoints. This is not the same gap as §2.6: the Worker's `NotificationConsumer` already performs real work (§2.6's resolution note: "intentionally left untouched — it already performs real work (sends notifications) and was never part of this finding"). The gap is entirely on the producer side — nothing in `ToTen.Api` publishes `SendNotificationEvent` from any real user-facing flow. This has gotten more concrete since PR #27: the Marketplace offer/counter negotiation loop now has five state-changing endpoints (`SubmitOffer`, `RejectOffer`, `CounterOffer`, `RespondToCounterOffer`'s accept/reject, `AcceptOffer`) and zero way for a buyer or seller to learn their offer changed state short of polling `GET /api/listings/{listingId}/offers`.
 
-- The critical/high-priority security audit findings (§1, §2.1–2.7) are already resolved per `CLAUDE.md` — auth, ownership checks, Keycloak role-claim mapping, and Worker audit writes are all in place.
-- With MVP trimmed to Household + Business (§2.9), the previously-"false" capability bullets (donations, cross-org transfer, real-time push, listing bundling/decompose — §2.9, §2.10) are now correctly out of scope. There's nothing to build there yet; `ABOUT.md` has been corrected to say so.
-- That leaves §2.11 as the one already-partially-built, MVP-relevant gap: the Worker already writes `AuditLogEntries` per item/manifest event; adding one `GET` endpoint in the Api exposes real, already-collected data and turns the "Item Audit Trail" bullet from false into true — the cheapest lever available in this pass.
-- Broader DB schema hardening (constraining `Organization.Type` to an enum/CHECK, resolving the Worker/Api FK gap in §2.8) is lower priority right now: `Organization.Type` free-text is harmless at Household/Business-only scope, and §2.8's no-FK posture is an already-accepted eventual-consistency tradeoff between two independently-migrated schemas. Revisit either only if a concrete need shows up — e.g., building §2.11's read endpoint surfaces bad/orphaned `ItemId` references in practice, at which point §2.8 and §2.11 should be solved together.
+| Option | Pros | Cons |
+|---|---|---|
+| **Wire Marketplace offer endpoints to publish `SendNotificationEvent`** (chosen) | Producer-side only — `NotificationConsumer` already exists and already delivers; narrowly scoped to the one concrete, already-shipped pain point | Doesn't touch other domains (Item move/listing events already have `AuditLogEntry`, not notifications — a broader "notify on every item event" pass is a separate decision) |
+| Build a full `INotifier`-backed notification system across all domains | Closes 1.9 completely | Unscoped, no product signal beyond Marketplace, real provider integration work |
+| Leave inert (current state) | Zero work | The negotiation loop's "you got countered" UX gap persists indefinitely |
+
+**Decision criteria (resolved):** Scope to Marketplace offer-state-change events only — that's the concrete gap the already-shipped negotiation loop introduced, and `NotificationConsumer` needs no new work to handle it. Revisit broader notification coverage (Item/Manifest events) only if a concrete need shows up.
+
+---
+
+## 2.13 — No CHECK/UNIQUE constraints anywhere in the schema
+
+**Status:** Resolved (2026-07-12) as Phase 6 of the MVP Phase Roadmap below — see that section for what shipped.
+
+**The problem:** A grep for `CHECK` and `UNIQUE` constraints across `setup.sql` and the EF Core migrations returns empty for the entire schema — not one exists. Concretely: `Organization.Type` (`Models/Organization.cs:9`, `setup.sql:180`) is free text restricted only by a code comment (`// Household, Business`), unenforced at the DB layer, even though MVP scope (§2.9) already restricts it to exactly two values. Money fields (`Transactions`/`Listings`/`Offers` `Amount`/`Price`) have no positivity constraint — a $0 or negative offer is currently insertable. Enum-backed integer columns (`Manifests.Status` `setup.sql:131`, `Offers.Status` `setup.sql:162`) have no CHECK pinning them to a valid enum range. No UNIQUE constraint exists on `Categories.Name`, `NotificationPreferences.UserId` (a user can get two preference rows), or `Locations.Name` per organization. Separately, `setup.sql` itself is stale — it's missing `Offers.CounterAmount`, added by migration `20260712051314_AddOfferCounterAmount` but never back-ported into the ERD file; migrations are the source of truth, not `setup.sql`.
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Add all constraints in one migration** (chosen) | Cheap, additive, no model-shape change; closes several real data-integrity gaps in a single pass | None significant — all four families (type, money, status, uniqueness) are independent guards on existing columns |
+| Add `Organization.Type` only | Narrower, smaller migration | Defers money/status/uniqueness invariants with no reason to sequence them separately |
+| Leave as-is | Zero risk today since app-layer code already enforces most of these in the happy path | No defense-in-depth; bad data is one bypassed validation away |
+
+**Decision criteria (resolved):** All four constraint families are cheap enough to bundle into one migration — no reason to sequence them separately. Also correct/regenerate `setup.sql` once this migration lands so it stops drifting from the real schema.
+
+---
+
+## MVP Phase Roadmap
+
+Sequencing for everything still open across `docs/architecture-security-audit-2026-07-08.md`, this document's own §2.x/§3.x/§4 findings, `ABOUT.md`'s footnotes, and `notes/architectural_improvements.md`'s 10 strategic proposals — reconciled against current code (verified 2026-07-11, not stale doc claims) and scoped with the product owner. Phases 1–5 are the audit-fix/QA/DevSecOps work already completed per `CLAUDE.md`; this roadmap picks up at Phase 6.
+
+### Phase 6 — Schema Hardening (Data Integrity)
+
+**Status:** Resolved (2026-07-12).
+
+- **§2.13** (CHECK/UNIQUE constraints): shipped via migration `20260712062605_AddSchemaHardeningConstraints` — CHECK constraint on `Organization.Type` (`'Household'`/`'Business'`), CHECK constraints on `Transactions`/`Listings`/`Offers` money fields (`> 0`, including `Offers.CounterAmount` where non-null) and on `Manifests.Status`/`Offers.Status` (valid enum range), and UNIQUE indexes on `Categories.Name`, `NotificationPreferences.UserId`, and `(OrganizationId, Name)` on `Locations`. No model-shape changes — added via `IEntityTypeConfiguration<T>.ToTable(t => t.HasCheckConstraint(...))`/`HasIndex(...).IsUnique()` in the existing `Data/Configurations/` classes (`OrganizationConfiguration`, `MarketplaceConfiguration`, `ManifestConfiguration`, `CategoryEntityConfiguration`, `StorageConfiguration`, `SocialConfiguration`).
+- **`Organization.DateDeleted`**: wired up as real soft-delete, scoped narrowly as decided — `Features/Organizations/OrganizationEndpoints.cs`'s `GET`/`DELETE` handlers now treat `DateDeleted != null` as not-found, and `DELETE /api/organizations/{id}` sets the timestamp instead of removing the row. Cascading into `Memberships`/`Listings` queries stayed explicitly out of scope, as decided. Test coverage: `tests/ToTen.Api.IntegrationTests/Organizations/OrganizationsEndpointsTests.cs` (`DeleteOrganization_ByOwner_ReturnsNoContent_AndOrgSoftDeleted`, `GetOrganization_AfterDelete_ReturnsNotFound`).
+- **§2.8 reaffirmed:** revisited 2026-07-11 alongside this phase — the Worker/Api FK gap posture (eventual-consistency, no FK) is unchanged. No new work.
+- `setup.sql` corrected in the same pass: added the previously-missing `Offers.CounterAmount` column and all of the above CHECK/UNIQUE constraints, so it no longer drifts from the migrations.
+- Full test suite (139 Api integration tests + 5 Worker tests) passes with these constraints in place; one pre-existing test (`DeleteOrganization_ByOwner_ReturnsNoContent_AndOrgRemoved`) was updated to assert soft-delete semantics instead of row removal.
+
+### Phase 7 — §4 Core Domain CRUD (Memberships, Organizations, Manifests, Storage)
+
+**Status:** Planned.
+
+- **Memberships** — `GET /api/organizations/{orgId}/members` (paginated member list) + a role-change endpoint (e.g. `PATCH /api/organizations/{orgId}/members/{userId}`), post-invite. Smallest gap; audit's own reference-pattern domain.
+- **Organizations** — `GET /api/organizations` scoped to the caller's memberships ("my orgs") + `PATCH /api/organizations/{id}` (rename). Create/read-single/delete already exist.
+- **Manifests** — `GET /api/manifests/{id}` + `GET /api/manifests` (paginated, ownership-gated, following `GetItemAuditTrail`'s pattern: `page`/`pageSize`, `X-Total-Count`, 404/403 via `ResourceOwnerRequirement`) plus a status-transition endpoint (e.g. `PATCH /api/manifests/{id}/status`). Currently zero `MapGet` exists in `Features/Manifests/` — a manifest can never be viewed again once created, directly undercutting the "aggregate items into manifests for logistics" capability `ABOUT.md` already claims as built.
+- **Storage** — `Box` CRUD (`Features/Storage/CreateBox/`, `GetBox/`, `UpdateBox/`, `DeleteBox/`) reusing the `ResourceOwnerRequirement` pattern already proven on Items (Box belongs to a Location which belongs to an Organization — gate by org membership the same way, no new authorization concept). `Location` gains list/get/update/delete to pair with the existing create-only endpoint.
+- **Categories:** explicitly **not building** CRUD — seed-only-forever confirmed as sufficient for MVP. Correct any doc language implying otherwise; zero endpoint work.
+- **Users/Keycloak Admin integration:** explicitly **deferred** past this MVP push — largest scope item in the whole matrix (real Keycloak Admin REST client, credential handling, role-sync), no concrete blocker identified for Household/Business commercial-marketplace launch specifically.
+- **Authorization policies:** the 5 unwired policies (`UserPolicy`, `BusinessOwnerPolicy`, `InternalUserPolicy`, `SuperAdminPolicy`, `ThirdPartyPolicy`) are wired **opportunistically** as each endpoint above is built — no dedicated policy-wiring pass. `AdminPolicy` and `ResourceOwnerRequirement` remain the only two policies with established precedent going in.
+
+### Phase 8 — Marketplace Transaction/Lineage Read Surface (closes §2.7 + §4 together)
+
+**Status:** Planned.
+
+Wire `ItemTransactionEvent` publishing into `Features/Marketplace/Shared/OfferAcceptance.cs` (the shared transaction/lineage/ownership-transfer logic used by both `AcceptOffer` and `RespondToCounterOffer`), then build a read endpoint (`GET /api/listings/{listingId}/transactions` or `GET /api/transactions`, ownership-gated, paginated like the other read endpoints in this roadmap) against the existing `Transaction`/`ItemLineage` tables. This resolves §2.7's "wire up vs. delete vs. keep parked" decision for `ItemTransactionEvent` specifically, and closes §4's Marketplace Transaction/ItemLineage read gap in the same pass, since they're the same underlying need (purchase/lineage history). `ItemCreatedEvent`/`ItemUpdatedEvent` remain explicitly parked — no concrete consumer identified for either.
+
+**Full and Partial Refunds (Phase 8 sub-scope)**
+
+**Status:** Planned.
+
+**The problem:** Once a `Transaction` row exists (written by `OfferAcceptance.cs` from either `AcceptOffer` or `RespondToCounterOffer`'s counter-accept path), there is no way to reverse it. No refund concept exists anywhere in the schema, endpoints, or events — a seller has no way to refund a dissatisfied buyer, partially or fully, and a *full* refund additionally has no mechanism to reverse the ownership transfer `OfferAcceptance.cs` already performed (the item stays with the buyer even if their money comes back).
+
+**Schema decision: new `Refund` table vs. extending `Transaction`**
+
+| Option | Pros | Cons |
+|---|---|---|
+| **New `Refund` table** (chosen) — `Id`, `TransactionId` (FK), `Amount`, `Reason`, `InitiatedBy`, `Status` (`Pending`/`Completed`/`Failed`), `CreatedAt`; refunded-to-date derived as `SUM(Amount)` over `Completed` rows for a given `TransactionId` | Supports multiple partial refunds against one transaction with a per-action audit trail (who, why, when); mirrors the existing one-table-per-domain-event precedent (`Transaction`, `Offer`, `AuditLogEntry`) instead of collapsing state into a single mutable row; avoids a lost-update race when two partial refunds against the same transaction are processed concurrently | New table + migration + FK; `Transaction`'s refund status becomes a computed/query value rather than a stored column |
+| Extend `Transaction` — add `RefundedAmount decimal`, `RefundStatus` enum, `RefundedAt` | No new table; single row to query | Only tracks a running total, not individual refund events (no reason, no initiator, no per-refund history); concurrent partial refunds need row-level locking or optimistic concurrency on `Transaction` to avoid lost updates; breaks the one-table-per-event precedent used everywhere else in this domain |
+
+**Decision criteria (resolved):** Same reasoning already applied to §2.6's Worker audit trail and the Offer negotiation loop (Phase 7's predecessor work) — an append-only table per state-changing action beats a mutable running-total column, both for audit trail and for concurrency safety. `Refund` as its own table, FK'd to `Transaction`, is the chosen shape; no changes to `Transaction` itself.
+
+**High-level implementation to-do:**
+
+1. **Schema** — `Models/Marketplace.cs`: new `Refund` entity (`Id`, `TransactionId`, `Amount`, `Reason`, `InitiatedBy`, `Status`, `CreatedAt`) and `RefundStatus` enum (`Pending`, `Completed`, `Failed`). `MarketplaceConfiguration.cs`: new `RefundConfiguration` — FK to `Transaction`, CHECK `Amount > 0` (same pattern as Phase 6's money constraints), index on `TransactionId`. One migration; no change to `Transaction`.
+2. **Shared logic** — new `Features/Marketplace/Shared/RefundProcessing.cs`, mirroring `OfferAcceptance.cs`: validates `Amount <= Transaction.Amount - SUM(existing Completed refunds)`, marks the new `Refund` row `Completed` (no external payment gateway exists in this codebase — a refund is a ledger entry, not a real money movement, consistent with how `Transaction` itself never touches a payment processor), and — **only when the refund is full** (cumulative `Completed` amount equals `Transaction.Amount`) — reverses ownership by writing a new `ItemLineage` row transferring the item back to `Transaction.SellerId`, reusing the lineage-write logic `OfferAcceptance.cs` already established. Partial refunds are financial-only; no ownership change.
+3. **Endpoints** — `Features/Marketplace/RefundTransaction/`: `POST /api/transactions/{transactionId}/refunds` (seller-only; body `{ amount, reason, full }`, where `full: true` short-circuits `amount` to the remaining balance) → `201` with the new `Refund`; `400` if `amount` exceeds the remaining balance or the transaction is already fully refunded. `Features/Marketplace/GetTransactionRefunds/`: `GET /api/transactions/{transactionId}/refunds` (paginated like every other list endpoint in this roadmap — `page`/`pageSize`, `X-Total-Count`), gated by the same buyer-or-seller ownership check `GetListingOffers` already uses.
+4. **Publisher** — new `RefundIssuedEvent` in `ToTen.Contracts/Events/ItemEvents.cs` (`RefundId`, `TransactionId`, `InventoryItemId`, `Amount`, `IsFullRefund`), published from `RefundProcessing.cs` once the `Refund` reaches `Completed`, following the same publish-on-state-change pattern the Offer endpoints already use.
+5. **Consumer** — extend `ItemEventsConsumer` (§2.6's existing audit-trail handler) to also handle `RefundIssuedEvent` and write an `AuditLogEntry` row, reusing the infrastructure Phase 6 already built rather than standing up a new consumer. Notifying both `BuyerId` and `SellerId` via `SendNotificationEvent` depends on Phase 10 (Notifications Pipeline) landing first — either sequence this refund work after Phase 10, or ship steps 1–4/6 first and add the notification call as a small follow-up once Phase 10 exists. Flagging this dependency explicitly rather than silently reordering the roadmap.
+6. **Tests** — partial refund leaves `ItemLineage`/ownership unchanged and sets `Refund.Status = Completed`; full refund (single-shot or cumulative across multiple partials) reverses `ItemLineage` back to the seller; an over-refund attempt (`amount` exceeds remaining balance) returns `400`; a non-seller caller returns `403`.
+
+### Phase 9 — Communications Persistence (completes §2.3)
+
+**Status:** Planned.
+
+Add a `ChatParticipant` join table (`ThreadId`, `UserId`) and migration — the more future-proof of §2.3's two persistence options, since `Communications` has no REST surface at all today. Build the accompanying REST surface (thread list, thread history) under a new `Features/Communications/` endpoint set. Update `ChatHub.SendMessage` to resolve/find-or-create a thread through the participant model and persist each message, instead of the current push-only behavior (`ChatHub.cs:77-80`'s deferred-persistence comment gets removed once this ships). Existing anti-abuse controls (length/flood/org-membership) are unaffected.
+
+### Phase 10 — Notifications Pipeline (§2.12)
+
+**Status:** Planned.
+
+Wire `SubmitOffer`, `RejectOffer`, `CounterOffer`, `RespondToCounterOffer` (both accept and reject), and `AcceptOffer` to publish `SendNotificationEvent` on each state transition. No new consumer infrastructure — `NotificationConsumer` already delivers real notifications (§2.6). Producer-side wiring only.
+
+### Phase 11 — Dead Code / Parked Decisions (status-quo reaffirmed)
+
+**Status:** Reaffirmed 2026-07-11, no new work.
+
+- **§2.7** — `ItemCreatedEvent`/`ItemUpdatedEvent` remain parked; `ItemTransactionEvent` resolved via Phase 8.
+- **§2.8** — no-FK, eventual-consistency posture unchanged; see Phase 6.
+- **§3.5** (DAST timing), **§3.6** (NuGet versioning), **§3.8** (`items-events` queue) — still correctly parked per their own decision criteria; no external consumer, no staging environment, and no second-subscriber need have materialized.
+- **§2.10** (listing bundle/decompose) — still correctly deferred; no bulk-resale or reversible-aggregation need has surfaced for Household/Business MVP scope.
+
+### Phase 12 — Post-MVP Architectural Backlog
+
+**Status:** Triaged 2026-07-11, from `notes/architectural_improvements.md`.
+
+**Already substantially implemented — not backlog items:**
+
+| # | Proposal | Evidence |
+|---|---|---|
+| 3 | OpenTelemetry observability | `ToTen.ServiceDefaults` already configures OTEL for ASP.NET Core/HttpClient/EF Core (per `CLAUDE.md`) |
+| 5 | Multi-tier automated QA pipeline | Robot Framework + JMeter already integrated as CI jobs (`robot-tests`, `performance-test` in `azure-dev.yml`) |
+| 6 | Secure-by-design DevSecOps | SAST (CodeQL) + DAST (ZAP) already run in CI (`codeql.yml`, `dast-scan` job) |
+| 7 | Universal IaC standardization | `terraform/` already provisions all infrastructure via 9 modules — this is the current state, not a proposal |
+| 8 | Pluggable IAM abstraction | `IIdentityManager`/`KeycloakIdentityManager` already isolates Keycloak-specific logic (§1.8's resolution) |
+
+**Genuine post-MVP backlog** (no phase number — revisit only if a concrete driver emerges, matching this doc's existing pattern):
+
+- **#1** Dynamic Schema Engine (EAV/JSONB) — high risk, no current multi-tenant/custom-schema need.
+- **#2** Pluggable event-bus abstraction (MassTransit/Dapr) — no current multi-cloud requirement; Rebus/Azure Service Bus works today.
+- **#4** AI-driven human-in-the-loop workflow engine — high risk, no current pilot workflow identified.
+- **#10** YARP API gateway — no current need for edge routing beyond what CORS/rate-limiting already handle in-process.
+
+**#9** (reusable NuGet component ecosystem) is not separately tracked here — it's the same decision as **§3.6**, which is already correctly parked pending an external consumer.

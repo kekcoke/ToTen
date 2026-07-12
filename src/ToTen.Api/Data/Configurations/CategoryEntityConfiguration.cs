@@ -10,5 +10,7 @@ public class CategoryEntityConfiguration : IEntityTypeConfiguration<Category>
     {
         builder.Property(category => category.Name)
                .HasMaxLength(20);
+
+        builder.HasIndex(category => category.Name).IsUnique();
     }
 }

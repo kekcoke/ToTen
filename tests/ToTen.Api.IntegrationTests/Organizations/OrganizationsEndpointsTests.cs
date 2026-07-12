@@ -70,7 +70,7 @@ public class OrganizationsEndpointsTests(ToTenWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task DeleteOrganization_ByOwner_ReturnsNoContent_AndOrgRemoved()
+    public async Task DeleteOrganization_ByOwner_ReturnsNoContent_AndOrgSoftDeleted()
     {
         var createRequest = new CreateOrganizationRequest("To Delete Org", "Household");
         var createResponse = await _client.PostAsJsonAsync("/api/organizations", createRequest, TestContext.Current.CancellationToken);
@@ -83,6 +83,22 @@ public class OrganizationsEndpointsTests(ToTenWebApplicationFactory factory)
         using var scope = factory.Services.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<ToTenContext>();
         var deleted = await ctx.Organizations.FindAsync([org.Id], TestContext.Current.CancellationToken);
-        Assert.Null(deleted);
+        Assert.NotNull(deleted);
+        Assert.NotNull(deleted.DateDeleted);
+    }
+
+    [Fact]
+    public async Task GetOrganization_AfterDelete_ReturnsNotFound()
+    {
+        var createRequest = new CreateOrganizationRequest("To Delete And Get Org", "Household");
+        var createResponse = await _client.PostAsJsonAsync("/api/organizations", createRequest, TestContext.Current.CancellationToken);
+        var org = await createResponse.Content.ReadFromJsonAsync<OrganizationResponse>(TestContext.Current.CancellationToken);
+        Assert.NotNull(org);
+
+        await _client.DeleteAsync($"/api/organizations/{org.Id}", TestContext.Current.CancellationToken);
+
+        var response = await _client.GetAsync($"/api/organizations/{org.Id}", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }
