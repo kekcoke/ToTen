@@ -28,5 +28,8 @@ public class ManifestConfiguration : IEntityTypeConfiguration<Manifest>
             .WithOne(b => b.Manifest)
             .HasForeignKey(b => b.ManifestId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // ManifestStatus enum: Draft = 0, Pending = 1, InTransit = 2, Received = 3, Cancelled = 4
+        builder.ToTable(t => t.HasCheckConstraint("CK_Manifests_Status_Range", "\"Status\" BETWEEN 0 AND 4"));
     }
 }

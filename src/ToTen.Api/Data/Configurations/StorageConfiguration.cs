@@ -29,6 +29,7 @@ public class LocationConfiguration : IEntityTypeConfiguration<Location>
 
         builder.HasIndex(l => l.OwnerId);
         builder.HasIndex(l => l.OrganizationId);
+        builder.HasIndex(l => new { l.OrganizationId, l.Name }).IsUnique();
 
         builder.HasOne(l => l.Organization)
             .WithMany(o => o.Locations)
