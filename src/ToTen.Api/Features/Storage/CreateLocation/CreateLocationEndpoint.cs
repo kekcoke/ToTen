@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using ToTen.Api.Data;
 using ToTen.Api.Models;
@@ -19,6 +20,30 @@ public static class CreateLocationEndpoint
         {
             var user = identityManager.GetCurrentUser(principal);
             if (user == null) return Results.Unauthorized();
+
+            if (request.OrganizationId.HasValue)
+            {
+                var userIdString = user.Id.ToString();
+                var isMember = await context.OrganizationMemberships
+                    .AnyAsync(m => m.OrganizationId == request.OrganizationId && m.UserId == userIdString);
+                if (!isMember && !user.Roles.Contains("admin") && !user.Roles.Contains("super_admin"))
+                {
+                    return Results.Forbid();
+                }
+            }
+
+            if (request.OrganizationId.HasValue)
+            {
+                // Postgres unique indexes treat distinct NULLs as non-equal, so this check
+                // (mirroring the DB's (OrganizationId, Name) unique index) only applies once
+                // a location is org-scoped — personal (org-less) locations may share names.
+                var nameTaken = await context.Locations
+                    .AnyAsync(l => l.OrganizationId == request.OrganizationId && l.Name == request.Name);
+                if (nameTaken)
+                {
+                    return Results.Conflict($"A location named '{request.Name}' already exists in this organization.");
+                }
+            }
 
             Point? coordinates = null;
             if (request.Latitude.HasValue && request.Longitude.HasValue)
