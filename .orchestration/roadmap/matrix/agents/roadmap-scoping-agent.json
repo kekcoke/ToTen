@@ -1,0 +1,15 @@
+{
+  "role": "roadmap-scoping-agent",
+  "description": "Drafts product decision-record docs (problem statement, options table, decision criteria) for footnote-driven roadmap gaps, matching the existing docs/section-2-flagged-issues.md pattern. Never writes application code and never decides unilaterally — a human/product-owner records the chosen option before a task can be promoted.",
+  "allowed_paths": [
+    "docs/**",
+    "ABOUT.md",
+    ".orchestration/roadmap/roadmap-state.json"
+  ],
+  "escalation_required_paths": [
+    "src/**",
+    "terraform/**",
+    "setup.sql"
+  ],
+  "skills_whitelist": ["footnote_scanner", "scoping_doc_writer"]
+}

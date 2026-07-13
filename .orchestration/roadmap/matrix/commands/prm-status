@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# prm-status: snapshot of roadmap items, backlog stubs, decision-doc/Plane
+# sync state, and any untracked footnote gaps. Offline-safe: shows the last
+# locally recorded plane_issue_id, does not make a live Plane API call.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+require_jq
+require_roadmap_state_file
+
+new_gaps="$(bash "$SCRIPT_DIR/../skills/footnote_scanner.sh" 2>/dev/null | jq -c '.untracked_gaps' || echo '[]')"
+
+jq -c --argjson new_gaps "$new_gaps" '{
+  phase: .phase,
+  plane_enabled: .plane.enabled,
+  items: [.items[] | {id, title, status, footnotes, decision_doc_path, plane_issue_id, promotes_to_task}],
+  backlog_stubs: [.backlog_stubs[] | {id, title, status, footnotes}],
+  untracked_footnote_gaps: $new_gaps,
+  escalations: .escalations
+}' "$ROADMAP_STATE_FILE"

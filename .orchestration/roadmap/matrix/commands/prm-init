@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# prm-init: scan ABOUT.md's Footnotes section for gaps, initialize or resume
+# roadmap-state.json. Idempotent. Does NOT auto-mutate state when resuming —
+# newly discovered footnote gaps are surfaced for a human/agent to triage,
+# not silently appended.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+require_jq
+
+mkdir -p "$ROADMAP_DIR/matrix/commands" "$ROADMAP_DIR/matrix/agents" "$ROADMAP_DIR/matrix/skills"
+
+if [[ -f "$ROADMAP_STATE_FILE" ]]; then
+  jq empty "$ROADMAP_STATE_FILE" 2>/dev/null || die "roadmap-state.json exists but is not valid JSON"
+
+  phase="$(jq -r '.phase' "$ROADMAP_STATE_FILE")"
+  in_flight="$(jq -c '[.items[] | select(.status != "queued" and .status != "promoted")]' "$ROADMAP_STATE_FILE")"
+  in_flight_count="$(echo "$in_flight" | jq 'length')"
+
+  scan="$(bash "$SCRIPT_DIR/../skills/footnote_scanner.sh" 2>/dev/null || echo '{"untracked_gaps":[]}')"
+  new_gaps="$(echo "$scan" | jq -c '.untracked_gaps')"
+  new_gaps_count="$(echo "$new_gaps" | jq 'length')"
+
+  if (( in_flight_count > 0 )); then
+    log_info "resuming at checkpoint — phase=$phase, $in_flight_count item(s) mid-flow"
+  else
+    log_info "roadmap-state.json present and clean — phase=$phase"
+  fi
+  if (( new_gaps_count > 0 )); then
+    log_info "footnote_scanner found $new_gaps_count untracked gap(s) not yet in roadmap-state.json — review and add manually"
+  fi
+
+  jq -cn --arg phase "$phase" --argjson in_flight "$in_flight" --argjson new_gaps "$new_gaps" \
+    '{phase: $phase, resumed: true, in_flight_items: $in_flight, new_gaps_detected: $new_gaps}'
+else
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  jq -n --arg now "$now" '{
+    version: 1, phase: "Discover & Plan", updated_at: $now,
+    source_docs: ["ABOUT.md#footnotes", "docs/section-2-flagged-issues.md"],
+    engineering_state_file: "../state.json",
+    cross_referenced_footnotes: {},
+    plane: {
+      enabled: false, base_url: "https://api.plane.so",
+      issues_segment_env: "PLANE_ISSUES_SEGMENT", issues_segment_default: "issues",
+      workspace_slug_env: "PLANE_WORKSPACE_SLUG", api_key_env: "PLANE_API_KEY", project_id_env: "PLANE_PROJECT_ID"
+    },
+    items: [], backlog_stubs: [], escalations: []
+  }' > "$ROADMAP_STATE_FILE"
+  log_ok "initialized fresh roadmap-state.json"
+  jq -cn '{phase: "Discover & Plan", resumed: false, in_flight_items: [], new_gaps_detected: []}'
+fi

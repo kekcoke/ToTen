@@ -1,0 +1,13 @@
+{
+  "role": "plane-sync-agent",
+  "description": "Narrowly scoped integration agent: pushes/pulls roadmap items against a Plane.so project via plane_sync.sh. Never touches source code or docs directly.",
+  "allowed_paths": [
+    ".orchestration/roadmap/roadmap-state.json"
+  ],
+  "escalation_required_paths": [
+    "src/**",
+    "docs/**",
+    "terraform/**"
+  ],
+  "skills_whitelist": ["plane_sync"]
+}
