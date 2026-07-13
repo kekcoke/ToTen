@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# orch-status: minified JSON snapshot of tasks, dependency-graph blockages,
+# worktree mount points, and repair-iteration counters.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+SKILLS="$ORCH_DIR/matrix/skills"
+require_jq
+require_state_file
+
+graph="$(bash "$SKILLS/dependency_grapher.sh" 2>/dev/null || echo '{}')"
+worktrees="$(bash "$SKILLS/worktree_manager.sh" list 2>/dev/null || echo '{}')"
+
+jq -c --argjson graph "$graph" --argjson worktrees "$worktrees" '{
+  phase: .phase,
+  tasks: [.tasks[] | {id, status, strategy, domain}],
+  graph: $graph,
+  worktrees: $worktrees,
+  repair_attempts: .repair_attempts,
+  escalations: .escalations
+}' "$STATE_FILE"

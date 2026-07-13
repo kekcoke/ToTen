@@ -1,0 +1,16 @@
+{
+  "role": "marketplace-agent",
+  "description": "Implements Marketplace domain feature work (transactions, refunds, offers) that does not touch shared contracts, migrations, or auth.",
+  "allowed_paths": [
+    "src/ToTen.Api/Features/Marketplace/**",
+    "src/ToTen.Api/Models/Marketplace.cs",
+    "src/ToTen.Api/Data/Configurations/MarketplaceConfiguration.cs",
+    "tests/ToTen.Api.IntegrationTests/Marketplace/**"
+  ],
+  "escalation_required_paths": [
+    "src/ToTen.Contracts/**",
+    "src/ToTen.Api/Migrations/**",
+    "setup.sql"
+  ],
+  "skills_whitelist": ["worktree_manager", "local_verifier", "dependency_grapher", "ci_log_parser"]
+}

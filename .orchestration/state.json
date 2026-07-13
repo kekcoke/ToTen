@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "phase": "Discover & Plan",
+  "updated_at": "2026-07-13T00:00:00Z",
+  "source_doc": "docs/section-2-flagged-issues.md",
+  "escalation_gates": [
+    "src/ToTen.Contracts/**",
+    "src/ToTen.Api/Migrations/**",
+    "setup.sql",
+    "src/ToTen.Api/Shared/Authentication/**",
+    "src/ToTen.Api/Shared/Authorization/**",
+    "src/ToTen.Api/Shared/Identity/**",
+    "src/ToTen.AppHost/realms/**"
+  ],
+  "verification": {
+    "local": {
+      "skill": "local_verifier",
+      "mirrors_ci_job": "lint-test"
+    },
+    "remote": {
+      "skill": "remote_ci_poller",
+      "watched_checks": [
+        "lint-test",
+        "analyze"
+      ]
+    },
+    "max_repair_attempts": 3
+  },
+  "tasks": [
+    {
+      "id": "phase8-marketplace-transactions",
+      "title": "Marketplace Transaction/Lineage read surface + partial/full Refund",
+      "domain": "Marketplace",
+      "status": "queued",
+      "strategy": "parallel",
+      "agent": "marketplace-agent",
+      "files_scope": [
+        "src/ToTen.Api/Features/Marketplace/**",
+        "src/ToTen.Contracts/Events/ItemEvents.cs",
+        "src/ToTen.Worker/Consumers/ItemEventsConsumer.cs"
+      ],
+      "depends_on": [],
+      "soft_conflicts_with": [
+        "phase10-marketplace-notifications"
+      ],
+      "source": "docs/section-2-flagged-issues.md#phase-8-marketplace-transactionlineage-read-surface-closes-27--4-together"
+    },
+    {
+      "id": "phase9-communications-persistence",
+      "title": "ChatParticipant join table + thread REST surface",
+      "domain": "Communications",
+      "status": "queued",
+      "strategy": "parallel",
+      "agent": "communications-agent",
+      "files_scope": [
+        "src/ToTen.Api/Features/Communications/**",
+        "src/ToTen.Api/Models/**Chat**"
+      ],
+      "depends_on": [],
+      "soft_conflicts_with": [],
+      "source": "docs/section-2-flagged-issues.md#phase-9-communications-persistence-completes-23"
+    },
+    {
+      "id": "phase10-marketplace-notifications",
+      "title": "Wire 5 offer endpoints to publish SendNotificationEvent",
+      "domain": "Marketplace",
+      "status": "queued",
+      "strategy": "serial",
+      "agent": "notifications-agent",
+      "files_scope": [
+        "src/ToTen.Api/Features/Marketplace/SubmitOffer/**",
+        "src/ToTen.Api/Features/Marketplace/RejectOffer/**",
+        "src/ToTen.Api/Features/Marketplace/CounterOffer/**",
+        "src/ToTen.Api/Features/Marketplace/RespondToCounterOffer/**",
+        "src/ToTen.Api/Features/Marketplace/AcceptOffer/**"
+      ],
+      "depends_on": [
+        "phase8-marketplace-transactions"
+      ],
+      "soft_conflicts_with": [],
+      "source": "docs/section-2-flagged-issues.md#phase-10-notifications-pipeline-212"
+    },
+    {
+      "id": "phase7-followup-ownership-checks",
+      "title": "Swap raw OwnerId==user.Id checks for ResourceAuthorizationHandler in MoveItem/AssociateBoxes/GenerateQR",
+      "domain": "Storage/Manifests",
+      "status": "queued",
+      "strategy": "parallel",
+      "agent": "authorization-agent",
+      "files_scope": [
+        "src/ToTen.Api/Features/Storage/MoveItem/**",
+        "src/ToTen.Api/Features/Manifests/AssociateBoxes/**",
+        "src/ToTen.Api/Features/Manifests/GenerateQR/**"
+      ],
+      "depends_on": [],
+      "soft_conflicts_with": [],
+      "source": "docs/section-2-flagged-issues.md#phase-7--4-core-domain-crud-memberships-organizations-manifests-storage"
+    }
+  ],
+  "repair_attempts": {},
+  "escalations": []
+}

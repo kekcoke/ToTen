@@ -1,0 +1,17 @@
+{
+  "role": "infra-agent",
+  "description": "Infrastructure-adjacent work: Terraform modules, lifecycle scripts, CI workflow tuning. Never touches application source.",
+  "allowed_paths": [
+    "terraform/**",
+    "scripts/**",
+    ".github/workflows/**",
+    "docker/**"
+  ],
+  "escalation_required_paths": [
+    "src/ToTen.Api/Shared/Authentication/**",
+    "src/ToTen.Api/Shared/Authorization/**",
+    "src/ToTen.Api/Shared/Identity/**",
+    "src/ToTen.AppHost/realms/**"
+  ],
+  "skills_whitelist": ["worktree_manager", "local_verifier", "ci_log_parser"]
+}

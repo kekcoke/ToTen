@@ -1,0 +1,19 @@
+{
+  "role": "authorization-agent",
+  "description": "Small mechanical authorization-check fixes: swaps raw ownership comparisons for the existing ResourceAuthorizationHandler pattern. Does not define new policies.",
+  "allowed_paths": [
+    "src/ToTen.Api/Features/Storage/MoveItem/**",
+    "src/ToTen.Api/Features/Manifests/AssociateBoxes/**",
+    "src/ToTen.Api/Features/Manifests/GenerateQR/**",
+    "tests/ToTen.Api.IntegrationTests/Storage/**",
+    "tests/ToTen.Api.IntegrationTests/Manifests/**"
+  ],
+  "escalation_required_paths": [
+    "src/ToTen.Api/Shared/Authentication/**",
+    "src/ToTen.Api/Shared/Authorization/**",
+    "src/ToTen.Api/Shared/Identity/**",
+    "src/ToTen.Contracts/**",
+    "src/ToTen.Api/Migrations/**"
+  ],
+  "skills_whitelist": ["worktree_manager", "local_verifier", "dependency_grapher", "ci_log_parser"]
+}

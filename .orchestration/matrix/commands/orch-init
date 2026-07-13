@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# orch-init: scan the repo. If state.json exists and has in_progress/blocked
+# tasks, resume at that checkpoint (report it). If state.json is missing,
+# initialize a clean, empty state structure. Idempotent either way.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+require_jq
+
+mkdir -p "$ORCH_DIR/matrix/commands" "$ORCH_DIR/matrix/agents" "$ORCH_DIR/matrix/skills"
+
+if [[ -f "$STATE_FILE" ]]; then
+  jq empty "$STATE_FILE" 2>/dev/null || die "state.json exists but is not valid JSON — run orch-repair or fix manually before continuing"
+
+  phase="$(jq -r '.phase' "$STATE_FILE")"
+  checkpoint="$(jq -c '[.tasks[] | select(.status=="in_progress" or .status=="blocked")]' "$STATE_FILE")"
+  checkpoint_count="$(echo "$checkpoint" | jq 'length')"
+
+  [[ -f "$WORKTREES_FILE" ]] || echo '{"version":1,"worktrees":{}}' > "$WORKTREES_FILE"
+
+  if (( checkpoint_count > 0 )); then
+    log_info "resuming at checkpoint — phase=$phase, $checkpoint_count task(s) in_progress/blocked"
+  else
+    log_info "state.json present and clean — phase=$phase"
+  fi
+  jq -c --argjson checkpoint "$checkpoint" '{phase: .phase, resumed: true, checkpoint_tasks: $checkpoint}' "$STATE_FILE"
+else
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  jq -n --arg now "$now" '{
+    version: 1, phase: "Discover & Plan", updated_at: $now,
+    escalation_gates: [], verification: {max_repair_attempts: 3},
+    tasks: [], repair_attempts: {}, escalations: []
+  }' > "$STATE_FILE"
+  echo '{"version":1,"worktrees":{}}' > "$WORKTREES_FILE"
+  log_ok "initialized fresh state.json"
+  jq -c '{phase: .phase, resumed: false, checkpoint_tasks: []}' "$STATE_FILE"
+fi

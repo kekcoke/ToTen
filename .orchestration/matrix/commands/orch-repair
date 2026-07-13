@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# orch-repair: explicit repair-loop entry point (local or remote), capped at
+# state.json's verification.max_repair_attempts (default 3). On failure under
+# the cap, returns the parsed diagnostic for the next implementation pass. On
+# exceeding the cap, sets the task BLOCKED and halts for human input.
+#
+# Usage:
+#   orch-repair <task_id>                 # local verification (dotnet build+test)
+#   orch-repair <task_id> --remote <pr>    # remote CI check polling
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+SKILLS="$ORCH_DIR/matrix/skills"
+require_jq
+require_state_file
+
+task_id="${1:?task_id required}"
+mode="${2:-}"
+pr_number="${3:-}"
+
+jq -e --arg id "$task_id" '.tasks[] | select(.id == $id)' "$STATE_FILE" >/dev/null \
+  || die "unknown task_id: $task_id"
+
+max_attempts="$(jq -r '.verification.max_repair_attempts // 3' "$STATE_FILE")"
+current_attempts="$(jq -r --arg id "$task_id" '.repair_attempts[$id] // 0' "$STATE_FILE")"
+
+run_verification() {
+  if [[ "$mode" == "--remote" ]]; then
+    [[ -n "$pr_number" ]] || die "--remote requires a PR number"
+    bash "$SKILLS/remote_ci_poller.sh" "$pr_number" --wait
+  else
+    bash "$SKILLS/local_verifier.sh"
+  fi
+}
+
+if verification_result="$(run_verification)"; then
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  tmp="$(mktemp)"
+  jq --arg id "$task_id" --arg now "$now" 'del(.repair_attempts[$id]) | .updated_at = $now' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+  log_ok "verification passed for $task_id — repair counter reset"
+  jq -cn --argjson result "$verification_result" '{status: "verified", result: $result}'
+  exit 0
+fi
+
+next_attempts=$(( current_attempts + 1 ))
+now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+if (( next_attempts > max_attempts )); then
+  tmp="$(mktemp)"
+  jq --arg id "$task_id" --arg now "$now" --argjson n "$next_attempts" '
+    (.tasks[] | select(.id == $id) | .status) = "blocked"
+    | .repair_attempts[$id] = $n
+    | .escalations += [{task_id: $id, reason: "exceeded max_repair_attempts", flagged_at: $now}]
+    | .updated_at = $now
+  ' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+  log_error "$task_id exceeded max repair attempts ($max_attempts) — BLOCKED, halting for human input"
+  jq -cn --arg id "$task_id" --argjson n "$next_attempts" '{status: "BLOCKED", task_id: $id, attempts: $n}'
+  exit 1
+fi
+
+tmp="$(mktemp)"
+jq --arg id "$task_id" --arg now "$now" --argjson n "$next_attempts" \
+  '.repair_attempts[$id] = $n | .updated_at = $now' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+
+log_info "$task_id verification failed — repair attempt $next_attempts/$max_attempts"
+if [[ "$mode" == "--remote" ]]; then
+  diagnostic="$verification_result"
+else
+  log_path="$(echo "$verification_result" | jq -r '.log_path // empty')"
+  if [[ -n "$log_path" && -f "$log_path" ]]; then
+    diagnostic="$(bash "$SKILLS/ci_log_parser.sh" "$log_path")"
+  else
+    diagnostic='{"failure_lines":[],"failure_count":0}'
+  fi
+fi
+jq -cn --arg id "$task_id" --argjson n "$next_attempts" --argjson diagnostic "$diagnostic" \
+  '{status: "repair_needed", task_id: $id, attempt: $n, diagnostic: $diagnostic}'
