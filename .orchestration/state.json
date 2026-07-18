@@ -102,7 +102,7 @@
       "domain": "Manifests",
       "status": "queued",
       "strategy": "parallel",
-      "agent": "marketplace-agent",
+      "agent": "manifests-agent",
       "files_scope": [
         "src/ToTen.Api/Features/Manifests/**"
       ],

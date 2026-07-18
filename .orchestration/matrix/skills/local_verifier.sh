@@ -6,6 +6,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/_lib.sh"
 require_jq
+command -v dotnet >/dev/null 2>&1 || die "dotnet SDK is required but not installed"
 
 cd "$REPO_ROOT"
 mkdir -p "$ORCH_DIR/logs"

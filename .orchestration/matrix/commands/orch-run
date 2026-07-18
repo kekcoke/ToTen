@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# orch-run: the loop driver / entrypoint. Iterates the full state machine —
+# advance -> implement -> local-verify (repair <=3) -> push -> open PR ->
+# remote-verify + merge + archive -> repeat — until there is nothing ready to
+# do, or a task escalates / gets BLOCKED (halt for human, matching existing
+# semantics). Bounded by MAX_ITERS; never an unbounded daemon.
+#
+# Usage:
+#   orch-run                 # run the loop to completion (or halt)
+#   orch-run --once          # a single advance+process tick, then stop
+#   orch-run --dry-run       # show status + rendered prompts for the next
+#                            #   ready batch; provisions/merges nothing
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+SKILLS="$ORCH_DIR/matrix/skills"
+require_jq
+
+MAX_ITERS="${ORCH_MAX_ITERS:-25}"
+once=0; dry_run=0
+for arg in "$@"; do
+  case "$arg" in
+    --once) once=1 ;;
+    --dry-run) dry_run=1 ;;
+    *) die "unknown flag: $arg (use --once or --dry-run)" ;;
+  esac
+done
+
+# Always start from a known checkpoint.
+bash "$SCRIPT_DIR/orch-init" >/dev/null
+require_state_file
+
+# ── Dry-run: no side effects. Show status + what the next batch would do. ────
+if (( dry_run )); then
+  log_info "[dry-run] current status:"
+  bash "$SCRIPT_DIR/orch-status"
+  graph="$(bash "$SKILLS/dependency_grapher.sh")" || die "dependency graph has a cycle"
+  order="$(echo "$graph" | jq -c '.order')"
+  blocked="$(echo "$graph" | jq -c '.blocked | keys')"
+  ready="$(jq -c --argjson order "$order" --argjson blocked "$blocked" '
+    ([.tasks[] | select(.status=="queued") | .id]) as $q
+    | ($order | map(select(. as $i | ($blocked | index($i)) == null and ($q | index($i)) != null)))
+  ' "$STATE_FILE")"
+  log_info "[dry-run] next ready batch: $(echo "$ready" | jq -c .)"
+  for id in $(echo "$ready" | jq -r '.[]'); do
+    ORCH_DRY_RUN=1 bash "$SKILLS/implementation_runner.sh" "$id" --dry-run
+  done
+  exit 0
+fi
+
+# ── Repair-aware local verification for one task. ───────────────────────────
+# Returns 0 when verified, 1 when the task got BLOCKED (halt it).
+local_verify() {
+  local id="$1" out st
+  while true; do
+    out="$(bash "$SCRIPT_DIR/orch-repair" "$id" || true)"
+    st="$(echo "$out" | jq -r '.status // "error"')"
+    case "$st" in
+      verified) return 0 ;;
+      BLOCKED)  log_error "$id BLOCKED during local verification"; return 1 ;;
+      repair_needed)
+        log_info "$id needs repair — re-running implementation pass"
+        bash "$SKILLS/implementation_runner.sh" "$id" >/dev/null || { log_error "$id repair pass failed/blocked"; return 1; }
+        ;;
+      *) log_error "$id unexpected verify status: $st"; return 1 ;;
+    esac
+  done
+}
+
+# ── Full pipeline for one in_progress task. Returns non-zero to signal halt. ─
+process_task() {
+  local id="$1"
+  bash "$SKILLS/implementation_runner.sh" "$id" >/dev/null || { log_error "$id implementation halted"; return 1; }
+  local_verify "$id" || return 1
+  bash "$SKILLS/pr_manager.sh" push "$id" >/dev/null || { log_error "$id push failed"; return 1; }
+  bash "$SKILLS/pr_manager.sh" open "$id" >/dev/null || { log_error "$id PR open failed"; return 1; }
+  bash "$SCRIPT_DIR/orch-complete" "$id" >/dev/null || { log_error "$id completion halted"; return 1; }
+  log_ok "$id fully completed"
+  return 0
+}
+
+# ── Main loop ───────────────────────────────────────────────────────────────
+iter=0
+while (( iter < MAX_ITERS )); do
+  iter=$(( iter + 1 ))
+  advance="$(bash "$SCRIPT_DIR/orch-advance")"
+  transition="$(echo "$advance" | jq -r '.transition')"
+  log_info "iter $iter: advance -> $transition"
+
+  if [[ "$transition" == "escalated" ]]; then
+    log_error "escalation raised — halting for human sign-off: $(echo "$advance" | jq -c '.tasks')"
+    echo "$advance"
+    exit 0
+  fi
+
+  # Process every task currently in_progress (freshly provisioned or resumed).
+  in_progress="$(jq -c '[.tasks[] | select(.status=="in_progress") | .id]' "$STATE_FILE")"
+  if [[ "$(echo "$in_progress" | jq 'length')" -gt 0 ]]; then
+    for id in $(echo "$in_progress" | jq -r '.[]'); do
+      if ! process_task "$id"; then
+        log_error "halting loop — task $id needs human input"
+        bash "$SCRIPT_DIR/orch-status"
+        exit 1
+      fi
+    done
+  fi
+
+  # Termination: nothing advanced this tick and nothing left running.
+  remaining="$(jq '[.tasks[] | select(.status=="in_progress" or .status=="queued")] | length' "$STATE_FILE")"
+  if [[ "$transition" == "none" && "$remaining" -eq 0 ]]; then
+    log_ok "no ready work and nothing running — loop complete"
+    break
+  fi
+
+  (( once )) && { log_info "--once: stopping after one tick"; break; }
+done
+
+(( iter >= MAX_ITERS )) && log_info "reached MAX_ITERS=$MAX_ITERS — stopping"
+bash "$SCRIPT_DIR/orch-status"
