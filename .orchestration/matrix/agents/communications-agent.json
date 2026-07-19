@@ -1,0 +1,16 @@
+{
+  "role": "communications-agent",
+  "description": "Implements Communications domain feature work (chat persistence, thread REST surface).",
+  "allowed_paths": [
+    "src/ToTen.Api/Features/Communications/**",
+    "src/ToTen.Api/Models/Social.cs",
+    "src/ToTen.Api/Data/Configurations/SocialConfiguration.cs",
+    "tests/ToTen.Api.IntegrationTests/Communications/**"
+  ],
+  "escalation_required_paths": [
+    "src/ToTen.Contracts/**",
+    "src/ToTen.Api/Migrations/**",
+    "setup.sql"
+  ],
+  "skills_whitelist": ["worktree_manager", "local_verifier", "dependency_grapher", "ci_log_parser"]
+}

@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# orch-advance: evaluate state.json and execute the immediate next
+# deterministic transition:
+#   1. Escalate any queued task whose files_scope overlaps an escalation gate
+#      (halts that task, does NOT provision a worktree for it).
+#   2. Otherwise, provision worktrees for the next batch of ready tasks
+#      (topological order, respecting MAX_PARALLEL capacity) and mark them
+#      in_progress.
+# State is mutated in state.json before any worktree is touched.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+SKILLS="$ORCH_DIR/matrix/skills"
+require_jq
+require_state_file
+
+MAX_PARALLEL=3
+
+graph="$(bash "$SKILLS/dependency_grapher.sh")" || die "dependency graph has a cycle — halting, needs human review"
+
+# ── 1. Escalation check ──────────────────────────────────────────────────────
+gates="$(jq -c '.escalation_gates' "$STATE_FILE")"
+to_escalate="$(jq -c --argjson gates "$gates" '
+  [.tasks[] | select(.status=="queued") |
+    . as $t |
+    ($t.files_scope | map(rtrimstr("/**"))) as $fs |
+    ($gates | map(rtrimstr("/**"))) as $eg |
+    select([$fs[] as $f | $eg[] as $g | select(($f|startswith($g)) or ($g|startswith($f)))] | length > 0) |
+    .id
+  ]' "$STATE_FILE")"
+
+escalate_count="$(echo "$to_escalate" | jq 'length')"
+if (( escalate_count > 0 )); then
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  tmp="$(mktemp)"
+  jq --argjson ids "$to_escalate" --arg now "$now" '
+    (.tasks[] | select(.id as $i | $ids | index($i) != null) | .status) |= "blocked"
+    | .escalations += [$ids[] as $i | {task_id: $i, reason: "files_scope overlaps an escalation-gated path", flagged_at: $now}]
+    | .updated_at = $now
+  ' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+  log_error "escalation required for: $(echo "$to_escalate" | jq -r 'join(", ")') — halting for human sign-off"
+  jq -cn --argjson ids "$to_escalate" '{transition: "escalated", tasks: $ids, status: "HALTED"}'
+  exit 0
+fi
+
+# ── 2. Capacity check ────────────────────────────────────────────────────────
+in_progress_count="$(jq '[.tasks[] | select(.status=="in_progress")] | length' "$STATE_FILE")"
+capacity=$(( MAX_PARALLEL - in_progress_count ))
+if (( capacity <= 0 )); then
+  jq -cn '{transition: "none", reason: "at max parallel capacity"}'
+  exit 0
+fi
+
+# ── 3. Pick next ready batch: topological order, minus blocked, minus already-started ──
+order="$(echo "$graph" | jq -c '.order')"
+blocked_ids="$(echo "$graph" | jq -c '.blocked | keys')"
+
+candidates="$(jq -c --argjson order "$order" --argjson blocked "$blocked_ids" --argjson cap "$capacity" '
+  ([.tasks[] | select(.status=="queued") | .id]) as $queued |
+  ($order | map(select(. as $i | ($blocked | index($i)) == null and ($queued | index($i)) != null))) as $ready |
+  $ready[0:$cap]
+' "$STATE_FILE")"
+
+candidate_count="$(echo "$candidates" | jq 'length')"
+if (( candidate_count == 0 )); then
+  jq -cn '{transition: "none", reason: "no ready queued tasks"}'
+  exit 0
+fi
+
+# ── 4. Provision worktrees + flip status to in_progress ─────────────────────
+provisioned="[]"
+for task_id in $(echo "$candidates" | jq -r '.[]'); do
+  branch="orch/$task_id"
+  bash "$SKILLS/worktree_manager.sh" add "$task_id" "$branch" main >/dev/null || die "failed to provision worktree for $task_id"
+  provisioned="$(echo "$provisioned" | jq -c --arg id "$task_id" --arg branch "$branch" '. + [{id: $id, branch: $branch}]')"
+done
+
+now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+tmp="$(mktemp)"
+jq --argjson ids "$candidates" --arg now "$now" '
+  (.tasks[] | select(.id as $i | $ids | index($i) != null) | .status) |= "in_progress"
+  | .updated_at = $now
+' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+
+log_ok "provisioned worktrees for: $(echo "$candidates" | jq -r 'join(", ")')"
+jq -cn --argjson tasks "$candidates" --argjson provisioned "$provisioned" \
+  '{transition: "provisioned", tasks: $tasks, worktrees: $provisioned}'

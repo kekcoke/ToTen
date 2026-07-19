@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# orch-complete: the terminal transition the scaffold was missing. For a task
+# whose PR checks are green, squash-merge the PR, mark the task "done" (which is
+# what lets dependency_grapher.sh finally unblock dependents), archive it, and
+# tear down its worktree + merged branch.
+#
+# This is the only place that writes status "done". Without it, phase10
+# (depends_on phase8) can never leave "blocked".
+#
+# Usage:
+#   orch-complete <task_id>
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+SKILLS="$ORCH_DIR/matrix/skills"
+require_jq
+require_state_file
+
+task_id="${1:?task_id required}"
+task="$(jq -c --arg id "$task_id" '.tasks[] | select(.id == $id)' "$STATE_FILE")"
+[[ -n "$task" ]] || die "unknown task_id: $task_id"
+
+pr_number="$(echo "$task" | jq -r '.pr_number // empty')"
+[[ -n "$pr_number" ]] || die "no pr_number for $task_id — run pr_manager.sh open first"
+
+# ── 1. Confirm remote CI is green (reuses the existing repair path) ──────────
+log_info "verifying remote CI for $task_id (PR #$pr_number) before completing"
+if ! bash "$SCRIPT_DIR/orch-repair" "$task_id" --remote "$pr_number" >/dev/null; then
+  die "remote verification did not pass for $task_id (PR #$pr_number) — not completing"
+fi
+
+# ── 2. Merge the PR ─────────────────────────────────────────────────────────
+bash "$SKILLS/pr_manager.sh" merge "$task_id" >/dev/null || die "merge failed for $task_id"
+
+# ── 3. Mark done + archive (this is the transition that unblocks dependents) ─
+now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+tmp="$(mktemp)"
+jq --arg id "$task_id" --arg now "$now" '
+  (.tasks[] | select(.id == $id) | .status) = "done"
+  | (.tasks[] | select(.id == $id) | .completed_at) = $now
+  | del(.repair_attempts[$id])
+  | .updated_at = $now
+' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+
+# Advance phase toward State Archival once nothing is left running.
+remaining="$(jq '[.tasks[] | select(.status == "in_progress" or .status == "queued")] | length' "$STATE_FILE")"
+if (( remaining == 0 )); then
+  tmp="$(mktemp)"
+  jq --arg now "$now" '.phase = "State Archival" | .updated_at = $now' "$STATE_FILE" > "$tmp" && mv "$tmp" "$STATE_FILE"
+fi
+
+# ── 4. Tear down the worktree + merged branch (closes the leak) ─────────────
+if jq -e --arg id "$task_id" '.worktrees[$id] // empty' "$WORKTREES_FILE" >/dev/null; then
+  bash "$SKILLS/worktree_manager.sh" remove "$task_id" --delete-branch-if-merged >/dev/null \
+    || log_info "worktree cleanup for $task_id reported an issue — check manually"
+fi
+
+log_ok "$task_id completed — merged PR #$pr_number, marked done, worktree cleaned up"
+jq -n --arg id "$task_id" --argjson pr "$pr_number" \
+  '{transition: "completed", task_id: $id, status: "done", pr_number: $pr}'

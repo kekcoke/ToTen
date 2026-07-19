@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# prm-promote: thin entry point over skills/promote_to_engineering.sh.
+# Usage: prm-promote <item_id> <agent_name> [strategy]
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+require_jq
+
+[[ $# -ge 2 ]] || die "usage: prm-promote <item_id> <agent_name> [strategy]"
+bash "$ROADMAP_DIR/matrix/skills/promote_to_engineering.sh" "$@"

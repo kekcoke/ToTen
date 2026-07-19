@@ -462,3 +462,7 @@ docs/
 
 # Claude Code / MCP
 .mcp.json
+
+# Orchestration loop: ephemeral git worktree checkouts (metadata in .orchestration/active-worktrees.json is tracked, the mounts themselves are not)
+.orchestration/worktrees/
+.orchestration/logs/

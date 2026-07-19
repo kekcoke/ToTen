@@ -1,0 +1,18 @@
+{
+  "role": "notifications-agent",
+  "description": "Wires existing Marketplace offer endpoints to publish SendNotificationEvent. Narrow scope: producer-side calls only, no new consumer infrastructure.",
+  "allowed_paths": [
+    "src/ToTen.Api/Features/Marketplace/SubmitOffer/**",
+    "src/ToTen.Api/Features/Marketplace/RejectOffer/**",
+    "src/ToTen.Api/Features/Marketplace/CounterOffer/**",
+    "src/ToTen.Api/Features/Marketplace/RespondToCounterOffer/**",
+    "src/ToTen.Api/Features/Marketplace/AcceptOffer/**",
+    "tests/ToTen.Api.IntegrationTests/Marketplace/**"
+  ],
+  "escalation_required_paths": [
+    "src/ToTen.Contracts/**",
+    "src/ToTen.Api/Migrations/**",
+    "setup.sql"
+  ],
+  "skills_whitelist": ["worktree_manager", "local_verifier", "dependency_grapher", "ci_log_parser"]
+}

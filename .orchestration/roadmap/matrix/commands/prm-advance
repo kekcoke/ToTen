@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# prm-advance: evaluate roadmap-state.json and execute the next deterministic
+# transition — scaffold a decision-record doc for the next queued item (and
+# best-effort push it to Plane, if enabled; a missing/invalid Plane
+# credential does not block the doc-scaffold transition).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../skills/_lib.sh"
+SKILLS="$ROADMAP_DIR/matrix/skills"
+require_jq
+require_roadmap_state_file
+
+next_id="$(jq -r '[.items[] | select(.status == "queued")][0].id // empty' "$ROADMAP_STATE_FILE")"
+
+if [[ -z "$next_id" ]]; then
+  jq -cn '{transition: "none", reason: "no queued roadmap items"}'
+  exit 0
+fi
+
+doc_result="$(bash "$SKILLS/scoping_doc_writer.sh" "$next_id")" || die "scoping_doc_writer failed for $next_id"
+
+plane_enabled="$(jq -r '.plane.enabled' "$ROADMAP_STATE_FILE")"
+plane_result='{"status": "skipped", "reason": "plane sync disabled"}'
+if [[ "$plane_enabled" == "true" ]]; then
+  if push_out="$(bash "$SKILLS/plane_sync.sh" push "$next_id" 2>&1)"; then
+    plane_result="$push_out"
+  else
+    plane_result="$(jq -cn --arg err "$push_out" '{status: "failed", error: $err}')"
+    log_info "Plane push failed for $next_id (non-fatal): $push_out"
+  fi
+fi
+
+log_ok "advanced $next_id: decision-doc scaffolded, Plane sync $(echo "$plane_result" | jq -r '.status')"
+jq -cn --arg id "$next_id" --argjson doc "$doc_result" --argjson plane "$plane_result" \
+  '{transition: "scaffolded", item_id: $id, doc: $doc, plane: $plane}'

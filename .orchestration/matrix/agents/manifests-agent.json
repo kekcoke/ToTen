@@ -1,0 +1,16 @@
+{
+  "role": "manifests-agent",
+  "description": "Implements Manifests domain feature work (bulk item association, box hops, QR association) that does not touch shared contracts, migrations, or auth.",
+  "allowed_paths": [
+    "src/ToTen.Api/Features/Manifests/**",
+    "src/ToTen.Api/Models/Manifest.cs",
+    "src/ToTen.Api/Data/Configurations/ManifestConfiguration.cs",
+    "tests/ToTen.Api.IntegrationTests/Manifests/**"
+  ],
+  "escalation_required_paths": [
+    "src/ToTen.Contracts/**",
+    "src/ToTen.Api/Migrations/**",
+    "setup.sql"
+  ],
+  "skills_whitelist": ["worktree_manager", "local_verifier", "dependency_grapher", "ci_log_parser"]
+}

@@ -353,3 +353,43 @@ Wire `SubmitOffer`, `RejectOffer`, `CounterOffer`, `RespondToCounterOffer` (both
 - **#10** YARP API gateway — no current need for edge routing beyond what CORS/rate-limiting already handle in-process.
 
 **#9** (reusable NuGet component ecosystem) is not separately tracked here — it's the same decision as **§3.6**, which is already correctly parked pending an external consumer.
+
+---
+
+## Roadmap — Listing bundling (aggregate multiple items into one listing) + decompose/reversal for listings & manifests
+
+**Status:** New, flagged from ABOUT.md footnote fact-check — not resolved. No code change in this pass.
+
+**Source:** roadmap item `roadmap-listing-aggregation-reversal` (`.orchestration/roadmap/roadmap-state.json`), footnotes: ABOUT.md#^5, ABOUT.md#^7
+
+**The problem (from ABOUT.md's fact-check):**
+
+- [^5]: **False.** `Listings."InventoryItemId"` is a singular `NOT NULL` foreign key (`setup.sql:105-113`) — one listing maps to exactly one item; there is no join table for bundling multiple items into one listing.
+- [^7]: **False.** No decompose/split/reversal endpoint exists anywhere in `Features/Marketplace`, `Features/Manifests`, or `Features/Items`.
+
+| Option | Pros | Cons |
+|---|---|---|
+| <!-- TODO: option 1 --> | <!-- TODO --> | <!-- TODO --> |
+| <!-- TODO: option 2 --> | <!-- TODO --> | <!-- TODO --> |
+
+**Decision criteria:** <!-- TODO: product owner / roadmap-scoping-agent to fill in, then add a line starting
+"**Decision criteria (resolved):**" once an option is chosen — that line is what `prm-promote` looks for. -->
+
+---
+
+## Roadmap — Direct bulk "add these items to a manifest" endpoint (currently only reachable via a Box hop)
+
+**Status:** New, flagged from ABOUT.md footnote fact-check — scoped this pass.
+
+**Source:** roadmap item `roadmap-bulk-manifest-association` (`.orchestration/roadmap/roadmap-state.json`), footnotes: ABOUT.md#^6
+
+**The problem (from ABOUT.md's fact-check):**
+
+- [^6]: **Partially true.** Items → Boxes → Manifests is real and wired (`AssociateBoxesEndpoint.cs`, `MoveItemEndpoint.cs`, FKs in `setup.sql:212-236`), but only via one hop through `Box` — there's no direct bulk "add these items to a manifest" endpoint.
+
+| Option | Pros | Cons |
+|---|---|---|
+| **`POST /api/manifests/{id}/items` bulk endpoint** — accepts an `InventoryItem` id list, internally resolves/creates the necessary `Box` rows and calls the existing `AssociateBoxes` logic per item | Closes the gap `ABOUT.md` already claims; reuses the existing Item→Box→Manifest FK model as-is, no schema change; one new endpoint | Still funnels through `Box` under the hood — doesn't remove the two-hop data model, just hides it behind a friendlier API |
+| **Leave as-is, correct `ABOUT.md`** | Zero work | Moving-company users still have to create/manage `Box` records manually just to batch-add items to a manifest — worse UX for the primary Moving Company persona this feature targets |
+
+**Decision criteria (resolved):** The Box-hop model itself is sound (it's how physical movers actually work — items go in boxes, boxes go on trucks) — the real gap is purely a missing convenience endpoint, not a data-model problem. Build the bulk endpoint as a thin wrapper over existing `AssociateBoxes`/`CreateBox` logic; no migration needed.

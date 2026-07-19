@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "phase": "Discover & Plan",
+  "updated_at": "2026-07-13T20:00:14Z",
+  "source_docs": [
+    "ABOUT.md#footnotes",
+    "docs/section-2-flagged-issues.md"
+  ],
+  "engineering_state_file": "../state.json",
+  "cross_referenced_footnotes": {
+    "ABOUT.md#^8": "resolved — docs/section-2-flagged-issues.md#211",
+    "ABOUT.md#^10": "tracked in ../state.json as phase10-marketplace-notifications (scoped to Marketplace offers only, per that doc's own decision)",
+    "ABOUT.md#^11": "tracked in ../state.json as phase9-communications-persistence",
+    "ABOUT.md#^12": "resolved — Shared/Authentication/KeycloakClaimsTransformation.cs, PR #20",
+    "ABOUT.md#^4": "verified true — AcceptOfferEndpoint.cs's commercial transaction flow works as claimed; not a gap, no action needed"
+  },
+  "plane": {
+    "enabled": true,
+    "base_url": "https://api.plane.so",
+    "issues_segment_env": "PLANE_ISSUES_SEGMENT",
+    "issues_segment_default": "issues",
+    "workspace_slug_env": "PLANE_WORKSPACE_SLUG",
+    "api_key_env": "PLANE_API_KEY",
+    "project_id_env": "PLANE_PROJECT_ID"
+  },
+  "items": [
+    {
+      "id": "roadmap-listing-aggregation-reversal",
+      "title": "Listing bundling (aggregate multiple items into one listing) + decompose/reversal for listings & manifests",
+      "footnotes": [
+        "ABOUT.md#^5",
+        "ABOUT.md#^7"
+      ],
+      "status": "needs_decision",
+      "domain": "Marketplace/Manifests",
+      "related_doc_section": "docs/section-2-flagged-issues.md#210---listing-is-single-item-only-no-decomposereversal-endpoint-for-listings-or-manifests",
+      "decision_doc_path": "docs/section-2-flagged-issues.md#roadmap---listing-bundling--aggregate-multiple-items-into-one-listing----decompose-reversal-for-listings---manifests",
+      "plane_issue_id": null,
+      "promotes_to_task": null,
+      "agent": "roadmap-scoping-agent"
+    },
+    {
+      "id": "roadmap-bulk-manifest-association",
+      "title": "Direct bulk \"add these items to a manifest\" endpoint (currently only reachable via a Box hop)",
+      "footnotes": [
+        "ABOUT.md#^6"
+      ],
+      "status": "promoted",
+      "domain": "Manifests",
+      "related_doc_section": null,
+      "decision_doc_path": "docs/section-2-flagged-issues.md#roadmap---direct-bulk--add-these-items-to-a-manifest--endpoint--currently-only-reachable-via-a-box-hop-",
+      "plane_issue_id": null,
+      "promotes_to_task": "roadmap-bulk-manifest-association",
+      "agent": "roadmap-scoping-agent"
+    }
+  ],
+  "backlog_stubs": [
+    {
+      "id": "roadmap-realtime-tracking",
+      "title": "Near real-time inventory tracking",
+      "footnotes": [
+        "ABOUT.md#^1",
+        "ABOUT.md#^9"
+      ],
+      "status": "stub",
+      "note": "Large strategic bet — no hub/websocket infra exists; contradicts both Core Capabilities and Planned Features claims. Not scaffolded yet."
+    },
+    {
+      "id": "roadmap-moving-ngo-parties",
+      "title": "Moving Company/NGO account types + cross-owner/cross-party-type transfer",
+      "footnotes": [
+        "ABOUT.md#^2"
+      ],
+      "status": "stub",
+      "note": "Post-MVP per docs/section-2-flagged-issues.md#29. Organization.Type is DB-constrained to Household/Business only (migration required). Not scaffolded yet."
+    },
+    {
+      "id": "roadmap-donation-workflow",
+      "title": "Donation workflow",
+      "footnotes": [
+        "ABOUT.md#^3"
+      ],
+      "status": "stub",
+      "note": "Post-MVP. Zero code/DTO/enum/endpoint references anywhere in the repo today. Not scaffolded yet."
+    }
+  ],
+  "escalations": []
+}
