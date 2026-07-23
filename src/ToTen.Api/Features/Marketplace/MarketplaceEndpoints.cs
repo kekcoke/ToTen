@@ -2,7 +2,9 @@ using ToTen.Api.Features.Marketplace.AcceptOffer;
 using ToTen.Api.Features.Marketplace.CounterOffer;
 using ToTen.Api.Features.Marketplace.CreateListing;
 using ToTen.Api.Features.Marketplace.GetListingOffers;
+using ToTen.Api.Features.Marketplace.GetTransactionRefunds;
 using ToTen.Api.Features.Marketplace.GetTransactions;
+using ToTen.Api.Features.Marketplace.RefundTransaction;
 using ToTen.Api.Features.Marketplace.RejectOffer;
 using ToTen.Api.Features.Marketplace.RespondToCounterOffer;
 using ToTen.Api.Features.Marketplace.Search;
@@ -22,6 +24,8 @@ public static class MarketplaceEndpoints
         app.MapRespondToCounterOffer();
         app.MapGetListingOffers();
         app.MapGetTransactions();
+        app.MapRefundTransaction();
+        app.MapGetTransactionRefunds();
         app.MapSearchListings();
     }
 }
