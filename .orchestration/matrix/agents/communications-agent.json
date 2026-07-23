@@ -9,7 +9,7 @@
   ],
   "escalation_required_paths": [
     "src/ToTen.Contracts/**",
-    "src/ToTen.Api/Migrations/**",
+    "src/ToTen.Api/Data/Migrations/**",
     "setup.sql"
   ],
   "skills_whitelist": ["worktree_manager", "local_verifier", "dependency_grapher", "ci_log_parser"]

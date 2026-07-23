@@ -13,7 +13,7 @@
     "src/ToTen.Api/Shared/Authorization/**",
     "src/ToTen.Api/Shared/Identity/**",
     "src/ToTen.Contracts/**",
-    "src/ToTen.Api/Migrations/**"
+    "src/ToTen.Api/Data/Migrations/**"
   ],
   "skills_whitelist": ["worktree_manager", "local_verifier", "dependency_grapher", "ci_log_parser"]
 }

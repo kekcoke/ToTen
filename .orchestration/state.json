@@ -1,11 +1,11 @@
 {
   "version": 1,
   "phase": "Discover & Plan",
-  "updated_at": "2026-07-13T20:00:14Z",
+  "updated_at": "2026-07-23T21:20:00Z",
   "source_doc": "docs/section-2-flagged-issues.md",
   "escalation_gates": [
     "src/ToTen.Contracts/**",
-    "src/ToTen.Api/Migrations/**",
+    "src/ToTen.Api/Data/Migrations/**",
     "setup.sql",
     "src/ToTen.Api/Shared/Authentication/**",
     "src/ToTen.Api/Shared/Authorization/**",
@@ -28,22 +28,44 @@
   },
   "tasks": [
     {
-      "id": "phase8-marketplace-transactions",
-      "title": "Marketplace Transaction/Lineage read surface + partial/full Refund",
+      "id": "phase8a-marketplace-read-surface",
+      "title": "Marketplace Transaction/Lineage read surface + publish ItemTransactionEvent",
       "domain": "Marketplace",
       "status": "queued",
       "strategy": "parallel",
       "agent": "marketplace-agent",
       "files_scope": [
+        "src/ToTen.Api/Features/Marketplace/**"
+      ],
+      "depends_on": [],
+      "soft_conflicts_with": [
+        "phase8b-marketplace-refunds",
+        "phase10-marketplace-notifications"
+      ],
+      "source": "docs/section-2-flagged-issues.md#phase-8-marketplace-transactionlineage-read-surface-closes-27--4-together"
+    },
+    {
+      "id": "phase8b-marketplace-refunds",
+      "title": "Partial/full Refund: Refund table, RefundProcessing, endpoints, RefundIssuedEvent",
+      "domain": "Marketplace",
+      "status": "blocked",
+      "strategy": "parallel",
+      "agent": "marketplace-agent",
+      "files_scope": [
         "src/ToTen.Api/Features/Marketplace/**",
         "src/ToTen.Contracts/Events/ItemEvents.cs",
+        "src/ToTen.Api/Models/Marketplace.cs",
+        "src/ToTen.Api/Data/Configurations/MarketplaceConfiguration.cs",
+        "src/ToTen.Api/Data/Migrations/**",
         "src/ToTen.Worker/Consumers/ItemEventsConsumer.cs"
       ],
       "depends_on": [],
       "soft_conflicts_with": [
+        "phase8a-marketplace-read-surface",
         "phase10-marketplace-notifications"
       ],
-      "source": "docs/section-2-flagged-issues.md#phase-8-marketplace-transactionlineage-read-surface-closes-27--4-together"
+      "blocked_reason": "Human sign-off gate: the schema (Refund table + EF migration), the RefundIssuedEvent contract, and the Worker consumer handlers must be human-authored and merged first (escalation-gated paths). Once that slice lands, narrow files_scope to src/ToTen.Api/Features/Marketplace/** and flip status to queued so the agent implements RefundProcessing.cs + endpoints + tests.",
+      "source": "docs/section-2-flagged-issues.md#full-and-partial-refunds-phase-8-sub-scope"
     },
     {
       "id": "phase9-communications-persistence",
@@ -75,7 +97,7 @@
         "src/ToTen.Api/Features/Marketplace/AcceptOffer/**"
       ],
       "depends_on": [
-        "phase8-marketplace-transactions"
+        "phase8a-marketplace-read-surface"
       ],
       "soft_conflicts_with": [],
       "source": "docs/section-2-flagged-issues.md#phase-10-notifications-pipeline-212"

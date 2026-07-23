@@ -18,6 +18,7 @@ public class ToTenContext(DbContextOptions<ToTenContext> options)
     public DbSet<Listing> Listings => Set<Listing>();
     public DbSet<Offer> Offers => Set<Offer>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
+    public DbSet<Refund> Refunds => Set<Refund>();
 
     // Social & Organizations
     public DbSet<Organization> Organizations => Set<Organization>();

@@ -45,3 +45,4 @@ public record ItemListingEvent(Guid ItemId, Guid ListingId, decimal Price);
 public record ItemTransferredEvent(Guid ItemId, string FromOwnerId, string ToOwnerId, decimal Price, DateTimeOffset Timestamp);
 public record ManifestCreatedEvent(Guid ManifestId, Guid OrganizationId, string Source, string Destination);
 public record SendNotificationEvent(Guid UserId, string Message, string Channel);
+public record RefundIssuedEvent(Guid RefundId, Guid TransactionId, Guid InventoryItemId, decimal Amount, bool IsFullRefund);
