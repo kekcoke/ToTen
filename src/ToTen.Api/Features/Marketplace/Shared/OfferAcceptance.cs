@@ -69,6 +69,15 @@ public static class OfferAcceptance
             transaction.Amount,
             transaction.Timestamp));
 
+        // Transaction/lineage read surface (phase 8a): user ids are GUID-valued
+        // (IIdentityManager models them as Guid), so parsing back is safe here.
+        await bus.Publish(new ItemTransactionEvent(
+            item.Id,
+            transaction.Id,
+            Guid.Parse(transaction.SellerId),
+            Guid.Parse(transaction.BuyerId),
+            transaction.Amount));
+
         return transaction;
     }
 }
