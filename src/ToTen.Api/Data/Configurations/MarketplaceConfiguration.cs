@@ -55,3 +55,25 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.ToTable(t => t.HasCheckConstraint("CK_Transactions_Amount_Positive", "\"Amount\" > 0"));
     }
 }
+
+public class RefundConfiguration : IEntityTypeConfiguration<Refund>
+{
+    public void Configure(EntityTypeBuilder<Refund> builder)
+    {
+        builder.HasKey(r => r.Id);
+        builder.Property(r => r.Amount).HasPrecision(18, 2);
+
+        builder.HasOne(r => r.Transaction)
+            .WithMany()
+            .HasForeignKey(r => r.TransactionId);
+
+        builder.HasIndex(r => r.TransactionId);
+
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_Refunds_Amount_Positive", "\"Amount\" > 0");
+            // RefundStatus enum: Pending = 0, Completed = 1, Failed = 2
+            t.HasCheckConstraint("CK_Refunds_Status_Range", "\"Status\" BETWEEN 0 AND 2");
+        });
+    }
+}

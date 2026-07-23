@@ -9,7 +9,9 @@ public class ItemEventsHandler :
     IHandleMessages<ItemMovedEvent>,
     IHandleMessages<ItemListingEvent>,
     IHandleMessages<ItemTransferredEvent>,
-    IHandleMessages<ItemDeletedEvent>
+    IHandleMessages<ItemTransactionEvent>,
+    IHandleMessages<ItemDeletedEvent>,
+    IHandleMessages<RefundIssuedEvent>
 {
     private readonly WorkerDbContext _db;
     private readonly ILogger<ItemEventsHandler> _logger;
@@ -47,6 +49,15 @@ public class ItemEventsHandler :
             actorId: message.ToOwnerId, occurredAt: message.Timestamp, message);
     }
 
+    public async Task Handle(ItemTransactionEvent message)
+    {
+        _logger.LogInformation("Processing ItemTransactionEvent: Item {ItemId} sold (transaction {TransactionId}) for {Price}",
+            message.ItemId, message.TransactionId, message.Price);
+
+        await RecordAuditLogAsync("ItemTransaction", itemId: message.ItemId, manifestId: null,
+            actorId: message.SellerId.ToString(), occurredAt: DateTimeOffset.UtcNow, message);
+    }
+
     public async Task Handle(ItemDeletedEvent message)
     {
         _logger.LogInformation("Processing ItemDeletedEvent: Item {ItemId} deleted by {UserId}",
@@ -54,6 +65,15 @@ public class ItemEventsHandler :
 
         await RecordAuditLogAsync("ItemDeleted", itemId: message.ItemId, manifestId: null,
             actorId: message.UserId, occurredAt: message.Timestamp, message);
+    }
+
+    public async Task Handle(RefundIssuedEvent message)
+    {
+        _logger.LogInformation("Processing RefundIssuedEvent: Refund {RefundId} on transaction {TransactionId} for {Amount} (full: {IsFullRefund})",
+            message.RefundId, message.TransactionId, message.Amount, message.IsFullRefund);
+
+        await RecordAuditLogAsync("RefundIssued", itemId: message.InventoryItemId, manifestId: null,
+            actorId: null, occurredAt: DateTimeOffset.UtcNow, message);
     }
 
     private async Task RecordAuditLogAsync(

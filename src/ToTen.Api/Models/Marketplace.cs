@@ -39,7 +39,28 @@ public class Transaction
     public required string SellerId { get; set; }
     public decimal Amount { get; set; }
     public DateTimeOffset Timestamp { get; set; }
-    
+
     public Guid InventoryItemId { get; set; }
     public InventoryItem? InventoryItem { get; set; }
+}
+
+public enum RefundStatus
+{
+    Pending,
+    Completed,
+    Failed
+}
+
+public class Refund
+{
+    public Guid Id { get; set; }
+
+    public Guid TransactionId { get; set; }
+    public Transaction? Transaction { get; set; }
+
+    public decimal Amount { get; set; }
+    public required string Reason { get; set; }
+    public required string InitiatedBy { get; set; }
+    public RefundStatus Status { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 }
